@@ -14,6 +14,11 @@ const RESEND_API_KEY = process.env.RESEND_API_KEY ?? ''
 const FROM_EMAIL = process.env.NOTIFICATION_FROM ?? 'Morway <onboarding@resend.dev>'
 const APP_URL = process.env.APP_URL ?? 'http://localhost:3000'
 
+// Resend free tier only allows sending to the account owner's email.
+// Set NOTIFICATION_TEST_TO to override all recipients during testing.
+// Remove this env var (or leave empty) to send to actual recipients in production.
+const TEST_OVERRIDE_TO = process.env.NOTIFICATION_TEST_TO ?? ''
+
 interface SendEmailOptions {
   to: string
   subject: string
@@ -21,10 +26,11 @@ interface SendEmailOptions {
 }
 
 async function sendEmail(options: SendEmailOptions): Promise<boolean> {
-  console.log(`[notifications] sendEmail called. To: ${options.to}, Subject: ${options.subject}`)
+  const recipientEmail = TEST_OVERRIDE_TO || options.to
+  console.log(`[notifications] sendEmail called. To: ${recipientEmail} (original: ${options.to}), Subject: ${options.subject}`)
 
   if (!RESEND_API_KEY) {
-    console.log(`[notifications] No RESEND_API_KEY set. Would have sent: "${options.subject}" to ${options.to}`)
+    console.log(`[notifications] No RESEND_API_KEY set. Would have sent: "${options.subject}" to ${recipientEmail}`)
     return false
   }
 
@@ -38,7 +44,7 @@ async function sendEmail(options: SendEmailOptions): Promise<boolean> {
       },
       body: JSON.stringify({
         from: FROM_EMAIL,
-        to: options.to,
+        to: recipientEmail,
         subject: options.subject,
         html: options.html,
       }),
