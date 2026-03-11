@@ -1,6 +1,8 @@
 import { db } from '@/lib/db'
 import Link from 'next/link'
 
+export const dynamic = 'force-dynamic'
+
 // TODO: Replace with session-based firmId
 const FIRM_ID = process.env.DEV_FIRM_ID ?? ''
 

@@ -1,5 +1,7 @@
 import { db } from '@/lib/db'
 
+export const dynamic = 'force-dynamic'
+
 const FIRM_ID = process.env.DEV_FIRM_ID ?? ''
 
 const ACTION_STYLES: Record<string, string> = {
