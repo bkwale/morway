@@ -5,7 +5,16 @@ const xero = new XeroClient({
   clientId: process.env.XERO_CLIENT_ID!,
   clientSecret: process.env.XERO_CLIENT_SECRET!,
   redirectUris: [process.env.XERO_REDIRECT_URI!],
-  scopes: ['openid', 'profile', 'email', 'accounting.transactions', 'accounting.contacts', 'offline_access'],
+  scopes: [
+    'openid',
+    'profile',
+    'email',
+    'offline_access',
+    // Granular scopes (required for apps created after 2 March 2026)
+    'accounting.invoices',         // invoices, credit notes, purchase orders
+    'accounting.contacts',         // contacts (unchanged)
+    'accounting.settings.read',    // chart of accounts, tax rates
+  ],
 })
 
 export { xero }
