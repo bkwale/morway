@@ -1,47 +1,61 @@
+'use client'
+
 import Link from 'next/link'
+import { usePathname } from 'next/navigation'
+
+const NAV_ITEMS = [
+  { href: '/dashboard', label: 'Overview', icon: '◎' },
+  { href: '/dashboard/exceptions', label: 'Exceptions', icon: '⚡' },
+  { href: '/dashboard/clients', label: 'Clients', icon: '◈' },
+  { href: '/dashboard/audit', label: 'Audit Trail', icon: '◷' },
+]
 
 export default function DashboardLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
+  const pathname = usePathname()
+
   return (
-    <div className="min-h-screen bg-gray-50 flex">
+    <div className="min-h-screen bg-slate-50 flex">
       {/* Sidebar */}
-      <aside className="w-56 bg-white border-r border-gray-200 flex flex-col">
-        <div className="px-6 py-5 border-b border-gray-200">
-          <span className="text-xl font-bold tracking-tight text-gray-900">
-            Morway
-          </span>
+      <aside className="w-60 bg-slate-900 text-white flex flex-col">
+        <div className="px-6 py-6">
+          <span className="text-xl font-bold tracking-tight">Morway</span>
+          <p className="text-xs text-slate-400 mt-0.5">Accounting Automation</p>
         </div>
 
-        <nav className="flex-1 px-3 py-4 space-y-1">
-          <NavItem href="/dashboard" label="Overview" />
-          <NavItem href="/dashboard/exceptions" label="Exceptions" />
-          <NavItem href="/dashboard/clients" label="Clients" />
-          <NavItem href="/dashboard/audit" label="Audit Trail" />
+        <nav className="flex-1 px-3 py-2 space-y-0.5">
+          {NAV_ITEMS.map((item) => {
+            const active =
+              item.href === '/dashboard'
+                ? pathname === '/dashboard'
+                : pathname.startsWith(item.href)
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={`flex items-center gap-3 px-3 py-2.5 text-sm font-medium rounded-lg transition-colors ${
+                  active
+                    ? 'bg-slate-800 text-white'
+                    : 'text-slate-300 hover:bg-slate-800/50 hover:text-white'
+                }`}
+              >
+                <span className="text-base">{item.icon}</span>
+                {item.label}
+              </Link>
+            )
+          })}
         </nav>
 
-        <div className="px-4 py-4 border-t border-gray-200">
-          <p className="text-xs text-gray-400">Morway v1.0</p>
+        <div className="px-6 py-4 border-t border-slate-800">
+          <p className="text-[11px] text-slate-500">Morway v1.0 · Tech Sanctum</p>
         </div>
       </aside>
 
       {/* Main content */}
-      <main className="flex-1 overflow-auto">
-        {children}
-      </main>
+      <main className="flex-1 overflow-auto">{children}</main>
     </div>
-  )
-}
-
-function NavItem({ href, label }: { href: string; label: string }) {
-  return (
-    <Link
-      href={href}
-      className="flex items-center px-3 py-2 text-sm font-medium text-gray-700 rounded-md hover:bg-gray-100 hover:text-gray-900 transition-colors"
-    >
-      {label}
-    </Link>
   )
 }

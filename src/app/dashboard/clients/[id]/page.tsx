@@ -42,12 +42,22 @@ export default async function ClientDetailPage({
 
   const exceptions = client.invoices.filter((i) => i.status === 'EXCEPTION').length
 
+  const STATUS_STYLES: Record<string, string> = {
+    PENDING: 'bg-slate-50 text-slate-600 border border-slate-200',
+    PROCESSING: 'bg-blue-50 text-blue-700 border border-blue-200',
+    AUTO_POSTED: 'bg-emerald-50 text-emerald-700 border border-emerald-200',
+    EXCEPTION: 'bg-amber-50 text-amber-700 border border-amber-200',
+    APPROVED: 'bg-emerald-50 text-emerald-700 border border-emerald-200',
+    REJECTED: 'bg-red-50 text-red-700 border border-red-200',
+    POSTED: 'bg-emerald-50 text-emerald-700 border border-emerald-200',
+  }
+
   return (
     <div className="p-8">
       <div className="mb-6">
         <Link
           href="/dashboard/clients"
-          className="text-sm text-gray-500 hover:text-gray-900 transition-colors"
+          className="text-sm text-slate-500 hover:text-slate-900 transition-colors"
         >
           ← Clients
         </Link>
@@ -55,20 +65,20 @@ export default async function ClientDetailPage({
 
       <div className="flex items-start justify-between mb-8">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">{client.name}</h1>
+          <h1 className="text-2xl font-semibold text-slate-900">{client.name}</h1>
           {client.peppolId && (
-            <p className="mt-1 text-sm text-gray-500 font-mono">{client.peppolId}</p>
+            <p className="mt-1 text-sm text-slate-400 font-mono">{client.peppolId}</p>
           )}
         </div>
         <div className="flex items-center gap-3">
           {client.xeroConnected ? (
-            <span className="inline-flex items-center px-2.5 py-1 rounded text-xs font-medium bg-green-100 text-green-800">
+            <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">
               Xero Connected
             </span>
           ) : (
             <Link
               href={`/api/xero/connect?clientId=${client.id}`}
-              className="px-3 py-1.5 bg-gray-900 text-white text-xs font-medium rounded-md hover:bg-gray-700 transition-colors"
+              className="px-4 py-2 bg-slate-900 text-white text-xs font-medium rounded-lg hover:bg-slate-800 transition-colors"
             >
               Connect Xero
             </Link>
@@ -77,53 +87,55 @@ export default async function ClientDetailPage({
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-3 gap-4 mb-8">
-        <div className="bg-white rounded-lg border border-gray-200 p-4">
-          <p className="text-xs text-gray-500 uppercase tracking-wider">Total Invoices</p>
-          <p className="text-2xl font-bold text-gray-900 mt-1">{client._count.invoices}</p>
+      <div className="grid grid-cols-3 gap-5 mb-8">
+        <div className="bg-white rounded-xl border border-slate-200 p-5">
+          <p className="text-xs text-slate-500 font-medium uppercase tracking-wider">Total Invoices</p>
+          <p className="text-2xl font-bold text-slate-900 mt-2 tabular-nums">{client._count.invoices}</p>
         </div>
-        <div className="bg-white rounded-lg border border-gray-200 p-4">
-          <p className="text-xs text-gray-500 uppercase tracking-wider">Exceptions</p>
-          <p className="text-2xl font-bold text-yellow-600 mt-1">{exceptions}</p>
+        <div className="bg-white rounded-xl border border-slate-200 p-5">
+          <p className="text-xs text-slate-500 font-medium uppercase tracking-wider">Exceptions</p>
+          <p className="text-2xl font-bold text-amber-600 mt-2 tabular-nums">{exceptions}</p>
         </div>
-        <div className="bg-white rounded-lg border border-gray-200 p-4">
-          <p className="text-xs text-gray-500 uppercase tracking-wider">Suppliers</p>
-          <p className="text-2xl font-bold text-gray-900 mt-1">{client.suppliers.length}</p>
+        <div className="bg-white rounded-xl border border-slate-200 p-5">
+          <p className="text-xs text-slate-500 font-medium uppercase tracking-wider">Suppliers</p>
+          <p className="text-2xl font-bold text-slate-900 mt-2 tabular-nums">{client.suppliers.length}</p>
         </div>
       </div>
 
       {/* Recent Invoices */}
-      <h2 className="text-lg font-semibold text-gray-900 mb-3">Recent Invoices</h2>
-      <div className="bg-white rounded-lg border border-gray-200 mb-8">
+      <h2 className="text-base font-semibold text-slate-900 mb-3">Recent Invoices</h2>
+      <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden mb-8">
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b border-gray-100 bg-gray-50">
-              <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Invoice #</th>
-              <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Supplier</th>
-              <th className="text-right px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
-              <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-              <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Received</th>
+            <tr className="bg-slate-50/60">
+              <th className="text-left px-6 py-3 text-xs font-medium text-slate-500 uppercase tracking-wider">Invoice #</th>
+              <th className="text-left px-6 py-3 text-xs font-medium text-slate-500 uppercase tracking-wider">Supplier</th>
+              <th className="text-right px-6 py-3 text-xs font-medium text-slate-500 uppercase tracking-wider">Amount</th>
+              <th className="text-left px-6 py-3 text-xs font-medium text-slate-500 uppercase tracking-wider">Status</th>
+              <th className="text-left px-6 py-3 text-xs font-medium text-slate-500 uppercase tracking-wider">Received</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-100">
+          <tbody className="divide-y divide-slate-100">
             {client.invoices.length === 0 && (
               <tr>
-                <td colSpan={5} className="px-6 py-8 text-center text-gray-400">
+                <td colSpan={5} className="px-6 py-12 text-center text-slate-400">
                   No invoices yet.
                 </td>
               </tr>
             )}
             {client.invoices.map((inv) => (
-              <tr key={inv.id} className="hover:bg-gray-50 transition-colors">
-                <td className="px-6 py-3 font-mono text-xs text-gray-700">{inv.invoiceNumber ?? '—'}</td>
-                <td className="px-6 py-3 text-gray-900">{inv.supplier?.name ?? '—'}</td>
-                <td className="px-6 py-3 text-right text-gray-700">
+              <tr key={inv.id} className="hover:bg-slate-50/50 transition-colors">
+                <td className="px-6 py-3.5 font-mono text-xs text-slate-700">{inv.invoiceNumber ?? '—'}</td>
+                <td className="px-6 py-3.5 text-slate-900">{inv.supplier?.name ?? '—'}</td>
+                <td className="px-6 py-3.5 text-right text-slate-700 tabular-nums">
                   {inv.currency} {Number(inv.grossAmount).toLocaleString('en', { minimumFractionDigits: 2 })}
                 </td>
-                <td className="px-6 py-3">
-                  <StatusBadge status={inv.status} />
+                <td className="px-6 py-3.5">
+                  <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-medium ${STATUS_STYLES[inv.status] ?? 'bg-slate-100 text-slate-600'}`}>
+                    {inv.status.replace('_', ' ')}
+                  </span>
                 </td>
-                <td className="px-6 py-3 text-gray-500 text-xs">
+                <td className="px-6 py-3.5 text-slate-400 text-xs">
                   {new Date(inv.receivedAt).toLocaleDateString('en-GB')}
                 </td>
               </tr>
@@ -135,14 +147,14 @@ export default async function ClientDetailPage({
       {/* Suppliers */}
       {client.suppliers.length > 0 && (
         <>
-          <h2 className="text-lg font-semibold text-gray-900 mb-3">Known Suppliers</h2>
-          <div className="bg-white rounded-lg border border-gray-200">
-            <div className="divide-y divide-gray-100">
+          <h2 className="text-base font-semibold text-slate-900 mb-3">Known Suppliers</h2>
+          <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+            <div className="divide-y divide-slate-100">
               {client.suppliers.map((s) => (
-                <div key={s.id} className="px-6 py-3 flex items-center justify-between">
-                  <span className="text-sm text-gray-900">{s.name}</span>
+                <div key={s.id} className="px-6 py-3.5 flex items-center justify-between">
+                  <span className="text-sm text-slate-900">{s.name}</span>
                   {s.vatNumber && (
-                    <span className="text-xs text-gray-400 font-mono">{s.vatNumber}</span>
+                    <span className="text-xs text-slate-400 font-mono">{s.vatNumber}</span>
                   )}
                 </div>
               ))}
@@ -151,22 +163,5 @@ export default async function ClientDetailPage({
         </>
       )}
     </div>
-  )
-}
-
-function StatusBadge({ status }: { status: string }) {
-  const styles: Record<string, string> = {
-    PENDING: 'bg-gray-100 text-gray-700',
-    PROCESSING: 'bg-blue-100 text-blue-700',
-    AUTO_POSTED: 'bg-green-100 text-green-700',
-    EXCEPTION: 'bg-yellow-100 text-yellow-700',
-    APPROVED: 'bg-green-100 text-green-800',
-    REJECTED: 'bg-red-100 text-red-700',
-    POSTED: 'bg-green-100 text-green-800',
-  }
-  return (
-    <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${styles[status] ?? 'bg-gray-100 text-gray-700'}`}>
-      {status.replace('_', ' ')}
-    </span>
   )
 }
