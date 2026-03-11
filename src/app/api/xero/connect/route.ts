@@ -13,7 +13,7 @@ export async function GET(req: NextRequest) {
   }
 
   // Store clientId in a short-lived cookie so the callback knows which client
-  const authUrl = getXeroAuthUrl()
+  const authUrl = await getXeroAuthUrl()
   const response = NextResponse.redirect(authUrl)
   response.cookies.set('xero_connecting_client', clientId, {
     httpOnly: true,

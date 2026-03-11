@@ -144,8 +144,8 @@ export async function postBillToXero(
 
 // ─── OAUTH HELPERS ───────────────────────────────────────────────────────────
 
-export function getXeroAuthUrl() {
-  return xero.buildConsentUrl()
+export async function getXeroAuthUrl(): Promise<string> {
+  return await xero.buildConsentUrl()
 }
 
 export async function handleXeroCallback(code: string, clientId: string) {
