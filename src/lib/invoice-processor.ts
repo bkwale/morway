@@ -266,10 +266,12 @@ async function sendToException(invoiceId: string, reason: string) {
 
   await createAuditLog(invoiceId, AUDIT_ACTION.EXCEPTION_CREATED, { reason })
 
-  // Send email notification (fire and forget)
-  notifyExceptionCreated(invoiceId, reason).catch((err) =>
+  // Send email notification (awaited so Vercel doesn't kill the function early)
+  try {
+    await notifyExceptionCreated(invoiceId, reason)
+  } catch (err) {
     console.error('[notifications] Failed to send exception alert:', err)
-  )
+  }
 }
 
 // ─── AUDIT LOG ───────────────────────────────────────────────────────────────

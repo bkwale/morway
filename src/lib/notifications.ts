@@ -21,11 +21,14 @@ interface SendEmailOptions {
 }
 
 async function sendEmail(options: SendEmailOptions): Promise<boolean> {
+  console.log(`[notifications] sendEmail called. To: ${options.to}, Subject: ${options.subject}`)
+
   if (!RESEND_API_KEY) {
     console.log(`[notifications] No RESEND_API_KEY set. Would have sent: "${options.subject}" to ${options.to}`)
     return false
   }
 
+  console.log(`[notifications] Calling Resend API...`)
   try {
     const res = await fetch('https://api.resend.com/emails', {
       method: 'POST',
@@ -57,6 +60,9 @@ async function sendEmail(options: SendEmailOptions): Promise<boolean> {
 // ─── EXCEPTION NOTIFICATION ──────────────────────────────────────────────────
 
 export async function notifyExceptionCreated(invoiceId: string, reason: string) {
+  console.log(`[notifications] Exception created for invoice ${invoiceId}. Sending notification...`)
+  console.log(`[notifications] RESEND_API_KEY set: ${!!process.env.RESEND_API_KEY}`)
+
   const invoice = await db.invoice.findUnique({
     where: { id: invoiceId },
     include: {
@@ -71,6 +77,8 @@ export async function notifyExceptionCreated(invoiceId: string, reason: string) 
   const users = await db.user.findMany({
     where: { firmId: invoice.client.firmId },
   })
+
+  console.log(`[notifications] Found ${users.length} users for firm. Firm email: ${invoice.client.firm.email}`)
 
   if (users.length === 0) {
     // Fallback: send to firm email
