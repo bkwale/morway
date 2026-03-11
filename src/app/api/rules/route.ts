@@ -6,7 +6,7 @@ import { db } from '@/lib/db'
  * List rules for a firm, optionally filtered by client.
  */
 export async function GET(req: NextRequest) {
-  const firmId = req.nextUrl.searchParams.get('firmId')
+  const firmId = req.nextUrl.searchParams.get('firmId') || process.env.DEV_FIRM_ID
   const clientId = req.nextUrl.searchParams.get('clientId')
 
   if (!firmId) return NextResponse.json({ error: 'Missing firmId' }, { status: 400 })
@@ -15,7 +15,6 @@ export async function GET(req: NextRequest) {
     where: {
       firmId,
       ...(clientId ? { clientId } : {}),
-      active: true,
     },
     orderBy: { priority: 'desc' },
   })
@@ -29,7 +28,8 @@ export async function GET(req: NextRequest) {
  */
 export async function POST(req: NextRequest) {
   const body = await req.json()
-  const { firmId, clientId, supplierId, keyword, accountCode, vatRate, priority } = body
+  const firmId = body.firmId ?? process.env.DEV_FIRM_ID ?? ''
+  const { clientId, supplierId, keyword, accountCode, vatRate, priority } = body
 
   if (!firmId || !accountCode) {
     return NextResponse.json({ error: 'firmId and accountCode are required' }, { status: 400 })
@@ -69,17 +69,16 @@ export async function PATCH(req: NextRequest) {
 }
 
 /**
- * DELETE /api/rules?id=xxx
- * Soft-delete a rule (sets active: false).
+ * DELETE /api/rules
+ * Delete a rule by id (sent in body).
  */
 export async function DELETE(req: NextRequest) {
-  const id = req.nextUrl.searchParams.get('id')
+  const body = await req.json()
+  const id = body.id
+
   if (!id) return NextResponse.json({ error: 'Missing id' }, { status: 400 })
 
-  await db.rule.update({
-    where: { id },
-    data: { active: false },
-  })
+  await db.rule.delete({ where: { id } })
 
   return NextResponse.json({ success: true })
 }
