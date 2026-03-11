@@ -13,8 +13,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Morway — Accounting Automation",
-  description: "Peppol e-invoice to Xero, automated.",
+  title: "Morway — Invoice Automation for Accounting Firms",
+  description: "Automate invoice processing from email to Xero. Built for accounting firms serving agriculture.",
 };
 
 export default function RootLayout({
