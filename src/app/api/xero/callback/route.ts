@@ -22,7 +22,9 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    await handleXeroCallback(code, clientId)
+    // Pass the full callback URL to Xero (includes code, scope, state params)
+    const fullCallbackUrl = req.nextUrl.toString()
+    await handleXeroCallback(fullCallbackUrl, clientId)
 
     const response = NextResponse.redirect(
       new URL(`/dashboard/clients/${clientId}?connected=true`, req.url)
@@ -30,9 +32,10 @@ export async function GET(req: NextRequest) {
     response.cookies.delete('xero_connecting_client')
     return response
   } catch (err) {
-    console.error('Xero callback error:', err)
+    const message = err instanceof Error ? err.message : 'Unknown error'
+    console.error('Xero callback error:', message, err)
     return NextResponse.redirect(
-      new URL(`/dashboard/clients/${clientId}?error=xero_connection_failed`, req.url)
+      new URL(`/dashboard?error=xero_failed&detail=${encodeURIComponent(message)}`, req.url)
     )
   }
 }

@@ -163,10 +163,8 @@ export async function getXeroAuthUrl(): Promise<string> {
   return await xero.buildConsentUrl()
 }
 
-export async function handleXeroCallback(code: string, clientId: string) {
-  const tokenSet = await xero.apiCallback(
-    `${process.env.XERO_REDIRECT_URI}?code=${code}`
-  )
+export async function handleXeroCallback(callbackUrl: string, clientId: string) {
+  const tokenSet = await xero.apiCallback(callbackUrl)
 
   await xero.updateTenants()
   const tenants = xero.tenants
