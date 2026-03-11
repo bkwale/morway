@@ -30,10 +30,10 @@ export default async function ClientsPage() {
           <p className="text-sm text-slate-500 mt-1">{clients.length} active client{clients.length !== 1 ? 's' : ''}</p>
         </div>
         <Link
-          href="/dashboard/clients/new"
+          href="/dashboard/clients/onboard"
           className="px-4 py-2.5 bg-slate-900 text-white text-sm font-medium rounded-lg hover:bg-slate-800 transition-colors"
         >
-          + Add Client
+          + Onboard Client
         </Link>
       </div>
 

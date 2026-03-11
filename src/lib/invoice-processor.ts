@@ -3,6 +3,30 @@ import { parseUBLInvoice } from './ubl-parser'
 import { applyRules } from './rules-engine'
 import { findOrCreateContact, postBillToXero } from './xero'
 import { INVOICE_STATUS, AUDIT_ACTION, AUTO_POST_THRESHOLD } from './constants'
+import { notifyExceptionCreated } from './notifications'
+
+/**
+ * Extract a useful error message from any thrown value.
+ * Xero SDK often throws plain objects, not Error instances.
+ */
+function extractErrorMessage(err: unknown): string {
+  if (err instanceof Error) return err.message
+  if (typeof err === 'string') return err
+  if (err && typeof err === 'object') {
+    // Xero SDK error shape
+    const obj = err as Record<string, unknown>
+    if (obj.body && typeof obj.body === 'object') {
+      const body = obj.body as Record<string, unknown>
+      if (body.Message) return String(body.Message)
+      if (body.Detail) return String(body.Detail)
+      if (body.message) return String(body.message)
+    }
+    if (obj.statusCode) return `Xero API error: HTTP ${obj.statusCode}`
+    if (obj.message) return String(obj.message)
+    try { return JSON.stringify(err).slice(0, 300) } catch { /* fallthrough */ }
+  }
+  return 'Unknown error — check Xero connection and tokens'
+}
 
 /**
  * Main invoice processing pipeline.
@@ -124,6 +148,28 @@ export async function processInvoice(invoiceId: string): Promise<void> {
 
     // ── STEP 4: Auto-post or send to exception queue ──────────────────────
     if (rulesResult.overallConfidence >= AUTO_POST_THRESHOLD) {
+      // Check Xero is connected before trying to auto-post
+      const xeroToken = await db.xeroToken.findUnique({ where: { clientId: invoice.clientId } })
+
+      if (!xeroToken) {
+        await sendToException(
+          invoiceId,
+          `Xero not connected for client "${invoice.client.name}". Rules matched (${Math.round(rulesResult.overallConfidence * 100)}% confidence) but cannot auto-post without Xero.`
+        )
+        return
+      }
+
+      // Check token isn't severely expired (>24h past expiry = likely needs re-auth)
+      const tokenExpiry = new Date(xeroToken.expiresAt)
+      const dayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000)
+      if (tokenExpiry < dayAgo) {
+        await sendToException(
+          invoiceId,
+          `Xero access token expired for client "${invoice.client.name}". Please reconnect Xero to resume auto-posting.`
+        )
+        return
+      }
+
       await autoPost(invoiceId, invoice.clientId, supplier, parsed, rulesResult)
     } else {
       const reason =
@@ -134,13 +180,13 @@ export async function processInvoice(invoiceId: string): Promise<void> {
       await sendToException(invoiceId, reason)
     }
   } catch (err) {
-    const message = err instanceof Error ? err.message : 'Unknown error'
+    const message = extractErrorMessage(err)
     await db.invoice.update({
       where: { id: invoiceId },
       data: { status: INVOICE_STATUS.FAILED, failureReason: message },
     })
     await createAuditLog(invoiceId, AUDIT_ACTION.FAILED, { error: message })
-    throw err
+    throw new Error(message)
   }
 }
 
@@ -187,7 +233,7 @@ async function autoPost(
   })
 
   if (!xeroBill?.invoiceID) {
-    await sendToException(invoiceId, 'Xero bill creation failed')
+    await sendToException(invoiceId, 'Xero bill creation failed — no invoice ID returned')
     return
   }
 
@@ -219,6 +265,11 @@ async function sendToException(invoiceId: string, reason: string) {
   })
 
   await createAuditLog(invoiceId, AUDIT_ACTION.EXCEPTION_CREATED, { reason })
+
+  // Send email notification (fire and forget)
+  notifyExceptionCreated(invoiceId, reason).catch((err) =>
+    console.error('[notifications] Failed to send exception alert:', err)
+  )
 }
 
 // ─── AUDIT LOG ───────────────────────────────────────────────────────────────
