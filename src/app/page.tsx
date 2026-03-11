@@ -20,13 +20,13 @@ export default function LandingPage() {
           Invoice Automation for Accounting Firms
         </p>
         <h1 className="text-4xl font-bold text-slate-900 leading-tight mb-6">
-          Supplier invoices into Xero.
+          Supplier invoices, processed.
           <br />
           <span className="text-slate-400">Hands-free.</span>
         </h1>
         <p className="text-lg text-slate-500 max-w-xl mx-auto mb-10 leading-relaxed">
           Morway takes supplier invoices — PDFs, email attachments, or structured e-invoices — parses them,
-          categorises each line item, and posts bills to Xero automatically. Your team only touches the exceptions.
+          categorises each line item, and posts bills to your accounting system automatically. Your team only touches the exceptions.
         </p>
         <div className="flex items-center justify-center gap-4">
           <Link
@@ -61,7 +61,7 @@ export default function LandingPage() {
           </div>
           <div>
             <p className="text-3xl font-bold text-slate-900">30s</p>
-            <p className="text-sm text-slate-500 mt-1">invoice to Xero</p>
+            <p className="text-sm text-slate-500 mt-1">invoice to posted</p>
           </div>
         </div>
       </section>
@@ -83,8 +83,8 @@ export default function LandingPage() {
           />
           <StepCard
             number="3"
-            title="Posted to Xero (or flagged)"
-            description="High-confidence invoices post as bills in Xero automatically. Low-confidence ones go to your exception queue for review."
+            title="Posted (or flagged)"
+            description="High-confidence invoices post as bills automatically. Low-confidence ones go to your exception queue for review."
           />
         </div>
       </section>
@@ -102,14 +102,14 @@ export default function LandingPage() {
               <p className="text-sm text-slate-400 leading-relaxed">
                 Mid-sized firms manage hundreds of clients. Each client receives dozens of supplier invoices monthly —
                 feed, fertiliser, equipment, vet bills, fuel. Someone has to open each one, read it, type the supplier
-                into Xero, pick the right account code, and post it. Every. Single. Time.
+                into their accounting system, pick the right account code, and post it. Every. Single. Time.
               </p>
             </div>
             <div className="bg-slate-800/50 rounded-xl p-6 border border-slate-700">
               <h3 className="text-base font-semibold mb-2">The Morway Fix</h3>
               <p className="text-sm text-slate-400 leading-relaxed">
                 Invoices arrive and get parsed automatically — PDF, email attachment, or XML.
-                Morway applies your categorisation rules and posts bills to Xero in seconds.
+                Morway applies your categorisation rules and posts bills in seconds.
                 Your accountants only handle exceptions. The system gets smarter with every invoice.
               </p>
             </div>
@@ -142,7 +142,7 @@ export default function LandingPage() {
               </li>
               <li className="flex items-start gap-2">
                 <span className="text-emerald-500 mt-0.5">✓</span>
-                Automatic Xero bill posting
+                Automatic bill posting
               </li>
               <li className="flex items-start gap-2">
                 <span className="text-emerald-500 mt-0.5">✓</span>
@@ -196,12 +196,12 @@ export default function LandingPage() {
             <div>
               <p className="text-sm font-bold text-slate-900">Germany</p>
               <p className="text-lg font-bold text-amber-500">Jan 2025</p>
-              <p className="text-xs text-slate-500">Receiving mandatory</p>
+              <p className="text-xs text-emerald-600 font-medium">Live</p>
             </div>
             <div>
               <p className="text-sm font-bold text-slate-900">Belgium</p>
               <p className="text-lg font-bold text-amber-500">Jan 2026</p>
-              <p className="text-xs text-slate-500">B2B mandate</p>
+              <p className="text-xs text-emerald-600 font-medium">Live</p>
             </div>
             <div>
               <p className="text-sm font-bold text-slate-900">France</p>
@@ -238,7 +238,7 @@ export default function LandingPage() {
       <footer className="border-t border-slate-100 px-8 py-8">
         <div className="max-w-4xl mx-auto flex items-center justify-between text-sm text-slate-400">
           <span>© {new Date().getFullYear()} Morway</span>
-          <span>Invoice to Xero, automated.</span>
+          <span>Invoice processing, automated.</span>
         </div>
       </footer>
     </div>
