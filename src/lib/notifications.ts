@@ -11,7 +11,7 @@ import { db } from './db'
  */
 
 const RESEND_API_KEY = process.env.RESEND_API_KEY ?? ''
-const FROM_EMAIL = process.env.NOTIFICATION_FROM ?? 'Morway <notifications@morway.app>'
+const FROM_EMAIL = process.env.NOTIFICATION_FROM ?? 'Morway <onboarding@resend.dev>'
 const APP_URL = process.env.APP_URL ?? 'http://localhost:3000'
 
 interface SendEmailOptions {
