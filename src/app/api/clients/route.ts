@@ -45,7 +45,8 @@ export async function GET(req: NextRequest) {
  */
 export async function POST(req: NextRequest) {
   const body = await req.json()
-  const { firmId, name, vatNumber, peppolId } = body
+  const firmId = body.firmId ?? process.env.DEV_FIRM_ID ?? ''
+  const { name, vatNumber, peppolId } = body
 
   if (!firmId || !name) {
     return NextResponse.json({ error: 'firmId and name are required' }, { status: 400 })
