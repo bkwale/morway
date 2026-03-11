@@ -6,7 +6,7 @@ import { db } from '@/lib/db'
  * List all clients for a firm with invoice stats.
  */
 export async function GET(req: NextRequest) {
-  const firmId = req.nextUrl.searchParams.get('firmId')
+  const firmId = req.nextUrl.searchParams.get('firmId') || process.env.DEV_FIRM_ID
   if (!firmId) return NextResponse.json({ error: 'Missing firmId' }, { status: 400 })
 
   const clients = await db.client.findMany({

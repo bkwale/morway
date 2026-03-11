@@ -32,11 +32,10 @@ export default function ExceptionsPage() {
   const [notes, setNotes] = useState('')
 
   // TODO: get from session
-  const FIRM_ID = ''
   const USER_ID = ''
 
   useEffect(() => {
-    fetch(`/api/invoices/exceptions?firmId=${FIRM_ID}`)
+    fetch(`/api/invoices/exceptions`)
       .then((r) => r.json())
       .then(setInvoices)
       .finally(() => setLoading(false))
