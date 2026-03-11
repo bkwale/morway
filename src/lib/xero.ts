@@ -68,14 +68,20 @@ export async function findOrCreateContact(
   const tenantId = await initXeroForClient(clientId)
 
   // Search by VAT number first, then by name
-  const contacts = await xero.accountingApi.getContacts(tenantId, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, supplier.vatNumber ? `TaxNumber=="${supplier.vatNumber}"` : undefined)
-
-  if (contacts.body.contacts && contacts.body.contacts.length > 0) {
-    return contacts.body.contacts[0]
+  // getContacts(tenantId, ifModifiedSince, where, order, iDs, page, includeArchived, summaryOnly, searchTerm, pageSize, unitdp)
+  if (supplier.vatNumber) {
+    const contacts = await xero.accountingApi.getContacts(
+      tenantId, undefined, `TaxNumber=="${supplier.vatNumber}"`, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined
+    )
+    if (contacts.body.contacts && contacts.body.contacts.length > 0) {
+      return contacts.body.contacts[0]
+    }
   }
 
   // Search by name
-  const nameSearch = await xero.accountingApi.getContacts(tenantId, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, `Name.ToLower()==${JSON.stringify(supplier.name.toLowerCase())}`)
+  const nameSearch = await xero.accountingApi.getContacts(
+    tenantId, undefined, `Name.ToLower()==${JSON.stringify(supplier.name.toLowerCase())}`, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined
+  )
 
   if (nameSearch.body.contacts && nameSearch.body.contacts.length > 0) {
     return nameSearch.body.contacts[0]
