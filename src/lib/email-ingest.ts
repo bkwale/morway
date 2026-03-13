@@ -128,17 +128,29 @@ async function downloadAttachment(emailId: string, attachmentId: string): Promis
   const apiKey = process.env.RESEND_API_KEY
   if (!apiKey) throw new Error('RESEND_API_KEY not set')
 
-  const url = `https://api.resend.com/emails/${emailId}/attachments/${attachmentId}`
-  const res = await fetch(url, {
+  // Inbound emails use /emails/receiving/{id}/attachments/{id}
+  // (NOT /emails/{id}/attachments/{id} — that's for outbound)
+  const metaUrl = `https://api.resend.com/emails/receiving/${emailId}/attachments/${attachmentId}`
+  const metaRes = await fetch(metaUrl, {
     headers: { Authorization: `Bearer ${apiKey}` },
   })
 
-  if (!res.ok) {
-    const body = await res.text()
-    throw new Error(`Resend attachment download failed (${res.status}): ${body}`)
+  if (!metaRes.ok) {
+    const body = await metaRes.text()
+    throw new Error(`Resend attachment metadata failed (${metaRes.status}): ${body}`)
   }
 
-  const arrayBuffer = await res.arrayBuffer()
+  // Response includes a pre-signed download_url
+  const meta = await metaRes.json() as { download_url: string; filename: string; content_type: string }
+  console.log(`[email-ingest] Got download URL for ${meta.filename}`)
+
+  // Download the actual file from the pre-signed URL
+  const fileRes = await fetch(meta.download_url)
+  if (!fileRes.ok) {
+    throw new Error(`Attachment file download failed (${fileRes.status})`)
+  }
+
+  const arrayBuffer = await fileRes.arrayBuffer()
   return Buffer.from(arrayBuffer)
 }
 

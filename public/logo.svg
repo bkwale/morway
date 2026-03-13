@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 80" fill="none">
+  <!-- Icon: Abstract flow/path symbol — two converging paths forming an M -->
+  <g transform="translate(0, 8)">
+    <!-- Left path -->
+    <path d="M8 56 L8 16 L24 40 L40 16 L40 56" stroke="#1a6b4a" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+    <!-- Right arrow/flow — represents the "way" / direction -->
+    <path d="M48 36 L62 36" stroke="#1a6b4a" stroke-width="4" stroke-linecap="round"/>
+    <path d="M57 28 L65 36 L57 44" stroke="#1a6b4a" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+  </g>
+
+  <!-- Wordmark -->
+  <text x="82" y="54" font-family="system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="40" font-weight="600" letter-spacing="-1" fill="#1a6b4a">morway</text>
+</svg>
