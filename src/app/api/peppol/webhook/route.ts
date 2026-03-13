@@ -70,13 +70,6 @@ async function handlePayload(payload: {
     )
   }
 
-  if (!client.xeroConnected) {
-    return NextResponse.json(
-      { error: `Client ${client.id} has not connected Xero` },
-      { status: 422 }
-    )
-  }
-
   // ── Quick parse to extract invoice number ─────────────────────────────────
   const parsed = parseUBLInvoice(xml)
 

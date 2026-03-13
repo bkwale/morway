@@ -52,10 +52,39 @@ export async function processInvoice(invoiceId: string): Promise<void> {
   })
 
   try {
-    // ── STEP 1: Parse UBL XML ─────────────────────────────────────────────
-    const parsed = parseUBLInvoice(invoice.rawXml)
+    // ── STEP 1: Parse invoice data ────────────────────────────────────────
+    // Email-ingested PDFs store parsed data as JSON in rawXml.
+    // Peppol invoices store UBL XML — we parse here.
+    let parsed: ReturnType<typeof parseUBLInvoice>
+    let isPreParsed = false
+
+    try {
+      const maybeJson = JSON.parse(invoice.rawXml)
+      if (maybeJson._source === 'EMAIL_PDF') {
+        isPreParsed = true
+        parsed = {
+          invoiceNumber: maybeJson.invoiceNumber ?? invoice.invoiceNumber,
+          invoiceDate: new Date(maybeJson.invoiceDate ?? invoice.invoiceDate),
+          dueDate: maybeJson.dueDate ? new Date(maybeJson.dueDate) : invoice.dueDate,
+          currency: maybeJson.currency ?? invoice.currency,
+          supplier: maybeJson.supplier ?? { name: '', vatNumber: null, address: null },
+          buyer: maybeJson.buyer ?? { name: '', vatNumber: null, peppolId: null },
+          lineItems: maybeJson.lineItems ?? [],
+          netAmount: maybeJson.netAmount ?? invoice.netAmount,
+          vatAmount: maybeJson.vatAmount ?? invoice.vatAmount,
+          grossAmount: maybeJson.grossAmount ?? invoice.grossAmount,
+          errors: maybeJson.errors ?? [],
+        }
+      } else {
+        parsed = parseUBLInvoice(invoice.rawXml)
+      }
+    } catch {
+      // Not JSON — treat as UBL XML
+      parsed = parseUBLInvoice(invoice.rawXml)
+    }
 
     await createAuditLog(invoiceId, AUDIT_ACTION.PARSED, {
+      source: isPreParsed ? 'EMAIL_PDF' : 'PEPPOL_XML',
       errors: parsed.errors,
       lineItemCount: parsed.lineItems.length,
     })

@@ -6,9 +6,11 @@
     "dev": "next dev",
     "build": "prisma generate && next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "test": "vitest run"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.78.0",
     "@libsql/client": "^0.17.0",
     "@prisma/adapter-libsql": "^5.22.0",
     "@prisma/client": "^5.22.0",
@@ -16,9 +18,11 @@
     "@types/xmldom": "^0.1.34",
     "next": "16.1.6",
     "next-auth": "^5.0.0-beta.30",
+    "pdf-parse": "^1.1.1",
     "prisma": "^5.22.0",
     "react": "19.2.3",
     "react-dom": "19.2.3",
+    "resend": "^6.9.3",
     "uuid": "^13.0.0",
     "xero-node": "^14.0.0",
     "xmldom": "^0.6.0",
@@ -32,6 +36,7 @@
     "eslint": "^9",
     "eslint-config-next": "16.1.6",
     "tailwindcss": "^4",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^4.1.0"
   }
 }
