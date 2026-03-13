@@ -1,19 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server'
 import crypto from 'crypto'
-import { ingestEmail, type ResendInboundPayload } from '@/lib/email-ingest'
+import { ingestEmail, type ResendWebhookEnvelope } from '@/lib/email-ingest'
 
 /**
  * POST /api/email/inbound
  *
  * Receives inbound emails from Resend webhook.
- * Resend sends a POST with the full email payload including base64 attachments.
+ * Resend sends: { created_at, type: "email.received", data: { ...email } }
+ *
+ * Attachments don't include content inline — we download them via Resend API.
  *
  * Setup:
- *   1. Add MX record for in.morway.app pointing to Resend
+ *   1. Add MX record for in.morway.app pointing to Resend's inbound SMTP
  *   2. Configure Resend inbound webhook to POST to https://morway.app/api/email/inbound
  *   3. Set RESEND_WEBHOOK_SECRET env var for signature verification
- *
- * Docs: https://resend.com/docs/dashboard/webhooks/introduction
+ *   4. Set RESEND_API_KEY env var for downloading attachments
  */
 export async function POST(req: NextRequest) {
   // ── Verify webhook signature ──────────────────────────────────────────────
@@ -25,7 +26,6 @@ export async function POST(req: NextRequest) {
   const rawBody = await req.text()
 
   if (webhookSecret && svixId && svixTimestamp && svixSignature) {
-    // Resend uses Svix for webhook signatures
     const signedContent = `${svixId}.${svixTimestamp}.${rawBody}`
     const secretBytes = Buffer.from(webhookSecret.replace('whsec_', ''), 'base64')
     const expected = crypto
@@ -33,7 +33,6 @@ export async function POST(req: NextRequest) {
       .update(signedContent)
       .digest('base64')
 
-    // Svix sends multiple signatures separated by spaces
     const signatures = svixSignature.split(' ').map((s) => s.replace('v1,', ''))
     const valid = signatures.some((sig) => {
       try {
@@ -49,13 +48,21 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  // ── Parse payload ─────────────────────────────────────────────────────────
-  let payload: ResendInboundPayload
+  // ── Parse payload (unwrap Resend envelope) ──────────────────────────────
+  let envelope: ResendWebhookEnvelope
   try {
-    payload = JSON.parse(rawBody)
+    envelope = JSON.parse(rawBody)
   } catch {
     return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 })
   }
+
+  // Only process email.received events
+  if (envelope.type !== 'email.received') {
+    console.log(`[email-inbound] Ignoring event type: ${envelope.type}`)
+    return NextResponse.json({ received: true, skipped: true })
+  }
+
+  const payload = envelope.data
 
   // ── Log receipt ───────────────────────────────────────────────────────────
   console.log(`[email-inbound] Received email from ${payload.from} to ${payload.to?.join(', ')} — subject: "${payload.subject}" — ${payload.attachments?.length ?? 0} attachment(s)`)

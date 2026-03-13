@@ -19,9 +19,19 @@ import { processInvoice } from './invoice-processor'
 
 // ─── TYPES ──────────────────────────────────────────────────────────────────
 
+/**
+ * Resend webhook wraps the email in a top-level envelope:
+ * { created_at, type: "email.received", data: { ...email fields } }
+ */
+export interface ResendWebhookEnvelope {
+  created_at: string
+  type: string
+  data: ResendInboundPayload
+}
+
 export interface ResendInboundPayload {
   /** The Resend email ID */
-  id: string
+  email_id: string
   /** Sender email */
   from: string
   /** Recipient(s) */
@@ -32,7 +42,7 @@ export interface ResendInboundPayload {
   text?: string
   /** HTML body */
   html?: string
-  /** Attachments metadata */
+  /** Attachments metadata (no content — just metadata) */
   attachments?: ResendAttachment[]
   /** When the email was created */
   created_at: string
@@ -43,8 +53,12 @@ export interface ResendAttachment {
   filename: string
   /** MIME type */
   content_type: string
-  /** Base64-encoded content (included in webhook payload) */
-  content: string
+  /** Content disposition */
+  content_disposition?: string
+  /** Content ID (for inline) */
+  content_id?: string | null
+  /** Attachment ID — used to fetch content from Resend API */
+  id: string
 }
 
 // ─── CLIENT LOOKUP ──────────────────────────────────────────────────────────
@@ -103,12 +117,35 @@ function classifyAttachment(filename: string, contentType: string): SupportedTyp
   return 'unsupported'
 }
 
+/**
+ * Download attachment content from Resend API.
+ * Resend inbound webhooks don't include attachment content inline —
+ * we need to fetch it using the email_id and attachment filename.
+ *
+ * Resend API: GET /emails/{email_id}/attachments/{attachment_id}
+ */
+async function downloadAttachment(emailId: string, attachmentId: string): Promise<Buffer> {
+  const apiKey = process.env.RESEND_API_KEY
+  if (!apiKey) throw new Error('RESEND_API_KEY not set')
+
+  const url = `https://api.resend.com/emails/${emailId}/attachments/${attachmentId}`
+  const res = await fetch(url, {
+    headers: { Authorization: `Bearer ${apiKey}` },
+  })
+
+  if (!res.ok) {
+    const body = await res.text()
+    throw new Error(`Resend attachment download failed (${res.status}): ${body}`)
+  }
+
+  const arrayBuffer = await res.arrayBuffer()
+  return Buffer.from(arrayBuffer)
+}
+
 async function parseAttachment(
-  content: string,
+  buffer: Buffer,
   type: SupportedType
 ): Promise<ParsedInvoice | null> {
-  const buffer = Buffer.from(content, 'base64')
-
   if (type === 'xml') {
     const xml = buffer.toString('utf-8')
     return parseUBLInvoice(xml)
@@ -132,6 +169,7 @@ export interface IngestResult {
 
 /**
  * Process an inbound email and create invoices from its attachments.
+ * Accepts the unwrapped email data (caller extracts from envelope).
  */
 export async function ingestEmail(payload: ResendInboundPayload): Promise<IngestResult> {
   const errors: string[] = []
@@ -170,8 +208,12 @@ export async function ingestEmail(payload: ResendInboundPayload): Promise<Ingest
     }
 
     try {
+      // Download attachment content from Resend API
+      console.log(`[email-ingest] Downloading attachment: ${attachment.filename} (${attachment.id})`)
+      const buffer = await downloadAttachment(payload.email_id, attachment.id)
+
       // Parse the attachment
-      const parsed = await parseAttachment(attachment.content, type)
+      const parsed = await parseAttachment(buffer, type)
       if (!parsed) {
         errors.push(`Failed to parse: ${attachment.filename}`)
         continue
@@ -185,7 +227,7 @@ export async function ingestEmail(payload: ResendInboundPayload): Promise<Ingest
       // Store raw content — for XML we keep the full document, for PDF we store
       // the parsed data as JSON so the processor can reconstruct it.
       const rawContent = type === 'xml'
-        ? Buffer.from(attachment.content, 'base64').toString('utf-8')
+        ? buffer.toString('utf-8')
         : JSON.stringify({
             _source: 'EMAIL_PDF',
             _filename: attachment.filename,
