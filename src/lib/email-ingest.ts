@@ -14,7 +14,7 @@
 
 import { db } from './db'
 import { parseUBLInvoice, type ParsedInvoice } from './ubl-parser'
-import { parsePdfInvoice } from './pdf-parser'
+import { parsePdfInvoices } from './pdf-parser'
 import { processInvoice } from './invoice-processor'
 
 // ─── TYPES ──────────────────────────────────────────────────────────────────
@@ -154,20 +154,24 @@ async function downloadAttachment(emailId: string, attachmentId: string): Promis
   return Buffer.from(arrayBuffer)
 }
 
+/**
+ * Parse attachment into one or more invoices.
+ * PDFs may contain multiple invoices; XML always returns one.
+ */
 async function parseAttachment(
   buffer: Buffer,
   type: SupportedType
-): Promise<ParsedInvoice | null> {
+): Promise<ParsedInvoice[]> {
   if (type === 'xml') {
     const xml = buffer.toString('utf-8')
-    return parseUBLInvoice(xml)
+    return [parseUBLInvoice(xml)]
   }
 
   if (type === 'pdf') {
-    return parsePdfInvoice(buffer)
+    return parsePdfInvoices(buffer)
   }
 
-  return null
+  return []
 }
 
 // ─── MAIN INGEST FUNCTION ───────────────────────────────────────────────────
@@ -224,70 +228,74 @@ export async function ingestEmail(payload: ResendInboundPayload): Promise<Ingest
       console.log(`[email-ingest] Downloading attachment: ${attachment.filename} (${attachment.id})`)
       const buffer = await downloadAttachment(payload.email_id, attachment.id)
 
-      // Parse the attachment
-      const parsed = await parseAttachment(buffer, type)
-      if (!parsed) {
+      // Parse the attachment (may return multiple invoices from one PDF)
+      const parsedList = await parseAttachment(buffer, type)
+      if (parsedList.length === 0) {
         errors.push(`Failed to parse: ${attachment.filename}`)
         continue
       }
 
-      if (parsed.errors.length > 0 && !parsed.invoiceNumber && !parsed.supplier.name) {
-        errors.push(`Could not extract data from ${attachment.filename}: ${parsed.errors.join(', ')}`)
-        continue
+      console.log(`[email-ingest] Found ${parsedList.length} invoice(s) in ${attachment.filename}`)
+
+      for (const parsed of parsedList) {
+        if (parsed.errors.length > 0 && !parsed.invoiceNumber && !parsed.supplier.name) {
+          errors.push(`Could not extract data from ${attachment.filename}: ${parsed.errors.join(', ')}`)
+          continue
+        }
+
+        // Store raw content — for XML we keep the full document, for PDF we store
+        // the parsed data as JSON so the processor can reconstruct it.
+        const rawContent = type === 'xml'
+          ? buffer.toString('utf-8')
+          : JSON.stringify({
+              _source: 'EMAIL_PDF',
+              _filename: attachment.filename,
+              _from: payload.from,
+              ...parsed,
+              // Convert dates to ISO strings for JSON serialization
+              invoiceDate: parsed.invoiceDate.toISOString(),
+              dueDate: parsed.dueDate?.toISOString() ?? null,
+            })
+
+        // Create invoice record
+        const invoice = await db.invoice.create({
+          data: {
+            clientId: client.id,
+            invoiceNumber: parsed.invoiceNumber || `EMAIL-${Date.now()}`,
+            invoiceDate: parsed.invoiceDate,
+            dueDate: parsed.dueDate,
+            currency: parsed.currency,
+            netAmount: parsed.netAmount,
+            vatAmount: parsed.vatAmount,
+            grossAmount: parsed.grossAmount,
+            rawXml: rawContent,
+            status: 'PENDING',
+          },
+        })
+
+        await db.auditLog.create({
+          data: {
+            invoiceId: invoice.id,
+            action: 'RECEIVED',
+            detail: JSON.stringify({
+              source: 'EMAIL',
+              from: payload.from,
+              subject: payload.subject,
+              filename: attachment.filename,
+              fileType: type,
+              supplierName: parsed.supplier.name,
+              invoiceNumber: parsed.invoiceNumber,
+            }),
+          },
+        })
+
+        invoicesCreated.push(invoice.id)
+
+        // Process asynchronously through the standard pipeline
+        processInvoice(invoice.id).catch((err) => {
+          console.error(`[email-ingest] Failed to process invoice ${invoice.id}:`, err)
+        })
       }
-
-      // Store raw content — for XML we keep the full document, for PDF we store
-      // the parsed data as JSON so the processor can reconstruct it.
-      const rawContent = type === 'xml'
-        ? buffer.toString('utf-8')
-        : JSON.stringify({
-            _source: 'EMAIL_PDF',
-            _filename: attachment.filename,
-            _from: payload.from,
-            ...parsed,
-            // Convert dates to ISO strings for JSON serialization
-            invoiceDate: parsed.invoiceDate.toISOString(),
-            dueDate: parsed.dueDate?.toISOString() ?? null,
-          })
-
-      // Create invoice record
-      const invoice = await db.invoice.create({
-        data: {
-          clientId: client.id,
-          invoiceNumber: parsed.invoiceNumber || `EMAIL-${Date.now()}`,
-          invoiceDate: parsed.invoiceDate,
-          dueDate: parsed.dueDate,
-          currency: parsed.currency,
-          netAmount: parsed.netAmount,
-          vatAmount: parsed.vatAmount,
-          grossAmount: parsed.grossAmount,
-          rawXml: rawContent,
-          status: 'PENDING',
-        },
-      })
-
-      await db.auditLog.create({
-        data: {
-          invoiceId: invoice.id,
-          action: 'RECEIVED',
-          detail: JSON.stringify({
-            source: 'EMAIL',
-            from: payload.from,
-            subject: payload.subject,
-            filename: attachment.filename,
-            fileType: type,
-            supplierName: parsed.supplier.name,
-            invoiceNumber: parsed.invoiceNumber,
-          }),
-        },
-      })
-
-      invoicesCreated.push(invoice.id)
-
-      // Process asynchronously through the standard pipeline
-      processInvoice(invoice.id).catch((err) => {
-        console.error(`[email-ingest] Failed to process invoice ${invoice.id}:`, err)
-      })
     } catch (err) {
       errors.push(`Error processing ${attachment.filename}: ${err instanceof Error ? err.message : 'unknown'}`)
     }
