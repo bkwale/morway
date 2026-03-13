@@ -1,0 +1,369 @@
+priority,country,firm,contact,email,subject,body,attach_onepager,notes
+1,NL,VLB,Wilma Kerseboom,agro-bedrijfskunde@vlb.nl,Automating invoice processing for VLB member firms,"Hi Wilma,
+
+I'm Walt Koleosho, founder of Morway — a tool that automates invoice processing for accounting firms, specifically those serving agricultural clients.
+
+When a supplier invoice arrives — whether it's a PDF attachment, an emailed invoice, or a structured e-invoice — Morway parses it, matches line items to account codes using rules the firm sets (feed, fertiliser, equipment, veterinary, fuel), and posts the bill to your accounting system automatically. When something doesn't match, it gets flagged for human review. No manual data entry.
+
+For firms that need Peppol e-invoice reception as EU mandates roll out, we offer that as an add-on.
+
+I'm reaching out to VLB because your member firms — ABAB, Alfa, Countus, Flynth — are exactly the kind of practices this is built for. With the Netherlands moving toward e-invoicing mandates (and Germany and France already there or close), I think there's an opportunity to get ahead of the volume increase before it becomes a capacity problem.
+
+I'm not looking to sell anything today. I'd value a short conversation about how VLB member firms currently handle invoice processing for their agricultural clients, and whether there's interest in piloting an automated approach.
+
+Would you be open to a 20-minute call, or could you point me to the right person at one of the member firms?
+
+Best,
+Walt Koleosho
+Morway
+walt@morway.app",Yes,CC vlb@vlb.nl. Follow up in 7 days.
+2,DE,HLBS,General,verband@hlbs.de,Agricultural accounting firms in Germany — Morway introduction,"Hi,
+
+I'm Walt Koleosho, founder of Morway — a tool that automates invoice processing for accounting firms serving agricultural clients.
+
+When a supplier invoice arrives (PDF, email, or structured e-invoice), Morway parses it, categorises line items using the firm's rules, and posts the bill to your accounting system automatically. No manual data entry.
+
+With Germany's e-invoicing mandate already live for receiving, I believe HLBS member firms could benefit from this kind of automation — especially those handling high volumes of farming invoices (feed, fertiliser, equipment, fuel).
+
+I'd love to connect with a few of your member firms to understand how they handle invoice processing today. Would it be possible to get an introduction, or could you point me to 2-3 firms that specialise in agricultural clients?
+
+Best,
+Walt Koleosho
+Morway
+walt@morway.app",Yes,Requesting member directory / warm intros.
+2,NL,Flynth Adviseurs & Accountants,Yvette de Bake,yvette.debake@flynth.nl,Flynth Adviseurs & Accountants — automating invoice processing for your agricultural clients,"Hi Yvette,
+
+I'm building a tool that automates invoice processing for accounting firms with agricultural clients — and I think it could save your team real time.
+
+For firms managing dozens of farming clients, every month brings a pile of supplier invoices — feed, fertiliser, equipment, vet bills, fuel — each one needing to be opened, categorised, coded to the right account, and posted to your accounting system. Manually.
+
+We built Morway to handle exactly this. When an invoice arrives (PDF, email attachment, or structured e-invoice), Morway does three things:
+
+1. Parses the invoice automatically — extracts supplier, line items, amounts
+2. Categorises each line item using rules your firm sets (feed, fertiliser, equipment, etc.)
+3. Posts the bill to your accounting system — no manual data entry, no copy-paste
+
+When the system is confident in its categorisation, invoices post automatically. When something doesn't match, it flags it for your team to review in a clean dashboard. You stay in control — the software handles the repetitive work.
+
+With Germany's e-invoicing mandate already live and Belgium's now in effect, the Netherlands won't be far behind. Firms handling agricultural clients are seeing invoice volumes climb — automation makes the difference between scaling and scrambling.
+
+We're currently onboarding a small number of firms to shape the product around real workflows. There's no commitment — I'd just like to understand how you handle invoice processing today and whether automation would save your team meaningful time.
+
+Would you have 20 minutes this week or next for a quick call?
+
+Best,
+Walt Koleosho
+Morway
+walt@morway.app",Yes,"VLB member. BKR network. Nationwide, large agri portfolio. Now have named contact."
+2,NL,Alfa Accountants en Adviseurs,Marco Vermin,mvermin@alfa.nl,Alfa Accountants en Adviseurs — automating invoice processing for your agricultural clients,"Hi Marco,
+
+I'm building a tool that automates invoice processing for accounting firms with agricultural clients — and I think it could save your team real time.
+
+For firms managing dozens of farming clients, every month brings a pile of supplier invoices — feed, fertiliser, equipment, vet bills, fuel — each one needing to be opened, categorised, coded to the right account, and posted to your accounting system. Manually.
+
+We built Morway to handle exactly this. When an invoice arrives (PDF, email attachment, or structured e-invoice), Morway does three things:
+
+1. Parses the invoice automatically — extracts supplier, line items, amounts
+2. Categorises each line item using rules your firm sets (feed, fertiliser, equipment, etc.)
+3. Posts the bill to your accounting system — no manual data entry, no copy-paste
+
+When the system is confident in its categorisation, invoices post automatically. When something doesn't match, it flags it for your team to review in a clean dashboard. You stay in control — the software handles the repetitive work.
+
+With Germany's e-invoicing mandate already live and Belgium's now in effect, the Netherlands won't be far behind. Firms handling agricultural clients are seeing invoice volumes climb — automation makes the difference between scaling and scrambling.
+
+We're currently onboarding a small number of firms to shape the product around real workflows. There's no commitment — I'd just like to understand how you handle invoice processing today and whether automation would save your team meaningful time.
+
+Would you have 20 minutes this week or next for a quick call?
+
+Best,
+Walt Koleosho
+Morway
+walt@morway.app",Yes,VLB member. DFK network. Major agri-accounting firm. Named contact.
+2,NL,ABAB Accountants en Adviseurs,Jeroen Geers,jeroen.geers@abab.nl,ABAB Accountants en Adviseurs — automating invoice processing for your agricultural clients,"Hi Jeroen,
+
+I'm building a tool that automates invoice processing for accounting firms with agricultural clients — and I think it could save your team real time.
+
+For firms managing dozens of farming clients, every month brings a pile of supplier invoices — feed, fertiliser, equipment, vet bills, fuel — each one needing to be opened, categorised, coded to the right account, and posted to your accounting system. Manually.
+
+We built Morway to handle exactly this. When an invoice arrives (PDF, email attachment, or structured e-invoice), Morway does three things:
+
+1. Parses the invoice automatically — extracts supplier, line items, amounts
+2. Categorises each line item using rules your firm sets (feed, fertiliser, equipment, etc.)
+3. Posts the bill to your accounting system — no manual data entry, no copy-paste
+
+When the system is confident in its categorisation, invoices post automatically. When something doesn't match, it flags it for your team to review in a clean dashboard. You stay in control — the software handles the repetitive work.
+
+With Germany's e-invoicing mandate already live and Belgium's now in effect, the Netherlands won't be far behind. Firms handling agricultural clients are seeing invoice volumes climb — automation makes the difference between scaling and scrambling.
+
+We're currently onboarding a small number of firms to shape the product around real workflows. There's no commitment — I'd just like to understand how you handle invoice processing today and whether automation would save your team meaningful time.
+
+Would you have 20 minutes this week or next for a quick call?
+
+Best,
+Walt Koleosho
+Morway
+walt@morway.app",Yes,"VLB member. Prime Global network. Large, southern NL."
+2,NL,de Jong & Laan,Roland Ogink,roland.ogink@jonglaan.nl,de Jong & Laan — automating invoice processing for your agricultural clients,"Hi Roland,
+
+I'm building a tool that automates invoice processing for accounting firms with agricultural clients — and I think it could save your team real time.
+
+For firms managing dozens of farming clients, every month brings a pile of supplier invoices — feed, fertiliser, equipment, vet bills, fuel — each one needing to be opened, categorised, coded to the right account, and posted to your accounting system. Manually.
+
+We built Morway to handle exactly this. When an invoice arrives (PDF, email attachment, or structured e-invoice), Morway does three things:
+
+1. Parses the invoice automatically — extracts supplier, line items, amounts
+2. Categorises each line item using rules your firm sets (feed, fertiliser, equipment, etc.)
+3. Posts the bill to your accounting system — no manual data entry, no copy-paste
+
+When the system is confident in its categorisation, invoices post automatically. When something doesn't match, it flags it for your team to review in a clean dashboard. You stay in control — the software handles the repetitive work.
+
+With Germany's e-invoicing mandate already live and Belgium's now in effect, the Netherlands won't be far behind. Firms handling agricultural clients are seeing invoice volumes climb — automation makes the difference between scaling and scrambling.
+
+We're currently onboarding a small number of firms to shape the product around real workflows. There's no commitment — I'd just like to understand how you handle invoice processing today and whether automation would save your team meaningful time.
+
+Would you have 20 minutes this week or next for a quick call?
+
+Best,
+Walt Koleosho
+Morway
+walt@morway.app",Yes,"Arnhem. Nitrogen policy, farm expansion. Named contact."
+2,NL,Moore DRV (DRV Corporate Finance),Martin Arnold de Jong,m.de.jong@drvcf.nl,Moore DRV (DRV Corporate Finance) — automating invoice processing for your agricultural clients,"Hi Martin,
+
+I'm building a tool that automates invoice processing for accounting firms with agricultural clients — and I think it could save your team real time.
+
+For firms managing dozens of farming clients, every month brings a pile of supplier invoices — feed, fertiliser, equipment, vet bills, fuel — each one needing to be opened, categorised, coded to the right account, and posted to your accounting system. Manually.
+
+We built Morway to handle exactly this. When an invoice arrives (PDF, email attachment, or structured e-invoice), Morway does three things:
+
+1. Parses the invoice automatically — extracts supplier, line items, amounts
+2. Categorises each line item using rules your firm sets (feed, fertiliser, equipment, etc.)
+3. Posts the bill to your accounting system — no manual data entry, no copy-paste
+
+When the system is confident in its categorisation, invoices post automatically. When something doesn't match, it flags it for your team to review in a clean dashboard. You stay in control — the software handles the repetitive work.
+
+With Germany's e-invoicing mandate already live and Belgium's now in effect, the Netherlands won't be far behind. Firms handling agricultural clients are seeing invoice volumes climb — automation makes the difference between scaling and scrambling.
+
+We're currently onboarding a small number of firms to shape the product around real workflows. There's no commitment — I'd just like to understand how you handle invoice processing today and whether automation would save your team meaningful time.
+
+Would you have 20 minutes this week or next for a quick call?
+
+Best,
+Walt Koleosho
+Morway
+walt@morway.app",Yes,Rotterdam. Corporate finance arm of Moore DRV.
+2,NL,KroeseWevers,Andre Vangurp,andre.vangurp@kroesewevers.nl,KroeseWevers — automating invoice processing for your dairy and livestock clients,"Hi Andre,
+
+I'm building a tool that automates invoice processing for accounting firms with agricultural clients — and I think it could save your team real time.
+
+For firms managing dozens of farming clients, every month brings a pile of supplier invoices — feed, fertiliser, equipment, vet bills, fuel — each one needing to be opened, categorised, coded to the right account, and posted to your accounting system. Manually.
+
+We built Morway to handle exactly this. When an invoice arrives (PDF, email attachment, or structured e-invoice), Morway does three things:
+
+1. Parses the invoice automatically — extracts supplier, line items, amounts
+2. Categorises each line item using rules your firm sets (feed, fertiliser, equipment, etc.)
+3. Posts the bill to your accounting system — no manual data entry, no copy-paste
+
+When the system is confident in its categorisation, invoices post automatically. When something doesn't match, it flags it for your team to review in a clean dashboard. You stay in control — the software handles the repetitive work.
+
+With Germany's e-invoicing mandate already live and Belgium's now in effect, the Netherlands won't be far behind. Firms handling agricultural clients are seeing invoice volumes climb — automation makes the difference between scaling and scrambling.
+
+We're currently onboarding a small number of firms to shape the product around real workflows. There's no commitment — I'd just like to understand how you handle invoice processing today and whether automation would save your team meaningful time.
+
+Would you have 20 minutes this week or next for a quick call?
+
+Best,
+Walt Koleosho
+Morway
+walt@morway.app",Yes,Deventer — Overijssel. Strong dairy/livestock region. High priority.
+2,BE,Baker Tilly Belgium,Wim Van De Walle,w.vandewalle@bakertillybelgium.be,Baker Tilly Belgium — automating invoice processing for your agricultural clients,"Hi Wim,
+
+I'm building a tool that automates invoice processing for accounting firms with agricultural clients — and I think it could save your team real time.
+
+For firms managing dozens of farming clients, every month brings a pile of supplier invoices — feed, fertiliser, equipment, vet bills, fuel — each one needing to be opened, categorised, coded to the right account, and posted to your accounting system. Manually.
+
+We built Morway to handle exactly this. When an invoice arrives (PDF, email attachment, or structured e-invoice), Morway does three things:
+
+1. Parses the invoice automatically — extracts supplier, line items, amounts
+2. Categorises each line item using rules your firm sets (feed, fertiliser, equipment, etc.)
+3. Posts the bill to your accounting system — no manual data entry, no copy-paste
+
+When the system is confident in its categorisation, invoices post automatically. When something doesn't match, it flags it for your team to review in a clean dashboard. You stay in control — the software handles the repetitive work.
+
+Belgium's B2B e-invoicing mandate went live in January — firms handling agricultural clients are already dealing with increased volume. The sooner you automate, the less catches up.
+
+We're currently onboarding a small number of firms to shape the product around real workflows. There's no commitment — I'd just like to understand how you handle invoice processing today and whether automation would save your team meaningful time.
+
+Would you have 20 minutes this week or next for a quick call?
+
+Best,
+Walt Koleosho
+Morway
+walt@morway.app",Yes,Aalst — East Flanders. Agricultural region. Strong network ($3.5B). High priority.
+2,BE,FoedererDFK,Stijn Verjans,s.verjans@foedererdfk.com,FoedererDFK — automating invoice processing for your agricultural clients,"Hi Stijn,
+
+I'm building a tool that automates invoice processing for accounting firms with agricultural clients — and I think it could save your team real time.
+
+For firms managing dozens of farming clients, every month brings a pile of supplier invoices — feed, fertiliser, equipment, vet bills, fuel — each one needing to be opened, categorised, coded to the right account, and posted to your accounting system. Manually.
+
+We built Morway to handle exactly this. When an invoice arrives (PDF, email attachment, or structured e-invoice), Morway does three things:
+
+1. Parses the invoice automatically — extracts supplier, line items, amounts
+2. Categorises each line item using rules your firm sets (feed, fertiliser, equipment, etc.)
+3. Posts the bill to your accounting system — no manual data entry, no copy-paste
+
+When the system is confident in its categorisation, invoices post automatically. When something doesn't match, it flags it for your team to review in a clean dashboard. You stay in control — the software handles the repetitive work.
+
+Belgium's B2B e-invoicing mandate went live in January — firms handling agricultural clients are already dealing with increased volume. The sooner you automate, the less catches up.
+
+We're currently onboarding a small number of firms to shape the product around real workflows. There's no commitment — I'd just like to understand how you handle invoice processing today and whether automation would save your team meaningful time.
+
+Would you have 20 minutes this week or next for a quick call?
+
+Best,
+Walt Koleosho
+Morway
+walt@morway.app",Yes,"Offices in Bree, Brussels, Hasselt. Limburg — agricultural region. Named contact."
+2,BE,ECOVIS ACTA Consult,Bart Franceus,bart.franceus@ecovis.be,ECOVIS ACTA Consult — automating invoice processing for your agricultural clients,"Hi Bart,
+
+I'm building a tool that automates invoice processing for accounting firms with agricultural clients — and I think it could save your team real time.
+
+For firms managing dozens of farming clients, every month brings a pile of supplier invoices — feed, fertiliser, equipment, vet bills, fuel — each one needing to be opened, categorised, coded to the right account, and posted to your accounting system. Manually.
+
+We built Morway to handle exactly this. When an invoice arrives (PDF, email attachment, or structured e-invoice), Morway does three things:
+
+1. Parses the invoice automatically — extracts supplier, line items, amounts
+2. Categorises each line item using rules your firm sets (feed, fertiliser, equipment, etc.)
+3. Posts the bill to your accounting system — no manual data entry, no copy-paste
+
+When the system is confident in its categorisation, invoices post automatically. When something doesn't match, it flags it for your team to review in a clean dashboard. You stay in control — the software handles the repetitive work.
+
+Belgium's B2B e-invoicing mandate went live in January — firms handling agricultural clients are already dealing with increased volume. The sooner you automate, the less catches up.
+
+We're currently onboarding a small number of firms to shape the product around real workflows. There's no commitment — I'd just like to understand how you handle invoice processing today and whether automation would save your team meaningful time.
+
+Would you have 20 minutes this week or next for a quick call?
+
+Best,
+Walt Koleosho
+Morway
+walt@morway.app",Yes,Brussels.
+2,BE,Moore Stephens Belgium,Frederik Berckmoes-Joos,frederik.berckmoesjoos@moorestephens.be,Moore Stephens Belgium — automating invoice processing for your agricultural clients,"Hi Frederik,
+
+I'm building a tool that automates invoice processing for accounting firms with agricultural clients — and I think it could save your team real time.
+
+For firms managing dozens of farming clients, every month brings a pile of supplier invoices — feed, fertiliser, equipment, vet bills, fuel — each one needing to be opened, categorised, coded to the right account, and posted to your accounting system. Manually.
+
+We built Morway to handle exactly this. When an invoice arrives (PDF, email attachment, or structured e-invoice), Morway does three things:
+
+1. Parses the invoice automatically — extracts supplier, line items, amounts
+2. Categorises each line item using rules your firm sets (feed, fertiliser, equipment, etc.)
+3. Posts the bill to your accounting system — no manual data entry, no copy-paste
+
+When the system is confident in its categorisation, invoices post automatically. When something doesn't match, it flags it for your team to review in a clean dashboard. You stay in control — the software handles the repetitive work.
+
+Belgium's B2B e-invoicing mandate went live in January — firms handling agricultural clients are already dealing with increased volume. The sooner you automate, the less catches up.
+
+We're currently onboarding a small number of firms to shape the product around real workflows. There's no commitment — I'd just like to understand how you handle invoice processing today and whether automation would save your team meaningful time.
+
+Would you have 20 minutes this week or next for a quick call?
+
+Best,
+Walt Koleosho
+Morway
+walt@morway.app",Yes,Antwerp. Named contact.
+2,BE,Van Havermaet,Lieve Hendriks,lieve.hendriks@vhg.be,Van Havermaet — automating invoice processing for your agricultural clients,"Hi Lieve,
+
+I'm building a tool that automates invoice processing for accounting firms with agricultural clients — and I think it could save your team real time.
+
+For firms managing dozens of farming clients, every month brings a pile of supplier invoices — feed, fertiliser, equipment, vet bills, fuel — each one needing to be opened, categorised, coded to the right account, and posted to your accounting system. Manually.
+
+We built Morway to handle exactly this. When an invoice arrives (PDF, email attachment, or structured e-invoice), Morway does three things:
+
+1. Parses the invoice automatically — extracts supplier, line items, amounts
+2. Categorises each line item using rules your firm sets (feed, fertiliser, equipment, etc.)
+3. Posts the bill to your accounting system — no manual data entry, no copy-paste
+
+When the system is confident in its categorisation, invoices post automatically. When something doesn't match, it flags it for your team to review in a clean dashboard. You stay in control — the software handles the repetitive work.
+
+Belgium's B2B e-invoicing mandate went live in January — firms handling agricultural clients are already dealing with increased volume. The sooner you automate, the less catches up.
+
+We're currently onboarding a small number of firms to shape the product around real workflows. There's no commitment — I'd just like to understand how you handle invoice processing today and whether automation would save your team meaningful time.
+
+Would you have 20 minutes this week or next for a quick call?
+
+Best,
+Walt Koleosho
+Morway
+walt@morway.app",Yes,Genk — Limburg. Agricultural region. High priority.
+2,BE,VGD Belgium,An Peeters,an.peeters@vgd.eu,VGD Belgium — automating invoice processing for your agricultural clients,"Hi An,
+
+I'm building a tool that automates invoice processing for accounting firms with agricultural clients — and I think it could save your team real time.
+
+For firms managing dozens of farming clients, every month brings a pile of supplier invoices — feed, fertiliser, equipment, vet bills, fuel — each one needing to be opened, categorised, coded to the right account, and posted to your accounting system. Manually.
+
+We built Morway to handle exactly this. When an invoice arrives (PDF, email attachment, or structured e-invoice), Morway does three things:
+
+1. Parses the invoice automatically — extracts supplier, line items, amounts
+2. Categorises each line item using rules your firm sets (feed, fertiliser, equipment, etc.)
+3. Posts the bill to your accounting system — no manual data entry, no copy-paste
+
+When the system is confident in its categorisation, invoices post automatically. When something doesn't match, it flags it for your team to review in a clean dashboard. You stay in control — the software handles the repetitive work.
+
+Belgium's B2B e-invoicing mandate went live in January — firms handling agricultural clients are already dealing with increased volume. The sooner you automate, the less catches up.
+
+We're currently onboarding a small number of firms to shape the product around real workflows. There's no commitment — I'd just like to understand how you handle invoice processing today and whether automation would save your team meaningful time.
+
+Would you have 20 minutes this week or next for a quick call?
+
+Best,
+Walt Koleosho
+Morway
+walt@morway.app",Yes,Brussels. Nexia member — strong network.
+2,BE,ALASKA ESV,Stefaan Kindt,s.kindt@alaska-group.eu,ALASKA ESV — automating invoice processing for your dairy and livestock clients,"Hi Stefaan,
+
+I'm building a tool that automates invoice processing for accounting firms with agricultural clients — and I think it could save your team real time.
+
+For firms managing dozens of farming clients, every month brings a pile of supplier invoices — feed, fertiliser, equipment, vet bills, fuel — each one needing to be opened, categorised, coded to the right account, and posted to your accounting system. Manually.
+
+We built Morway to handle exactly this. When an invoice arrives (PDF, email attachment, or structured e-invoice), Morway does three things:
+
+1. Parses the invoice automatically — extracts supplier, line items, amounts
+2. Categorises each line item using rules your firm sets (feed, fertiliser, equipment, etc.)
+3. Posts the bill to your accounting system — no manual data entry, no copy-paste
+
+When the system is confident in its categorisation, invoices post automatically. When something doesn't match, it flags it for your team to review in a clean dashboard. You stay in control — the software handles the repetitive work.
+
+Belgium's B2B e-invoicing mandate went live in January — firms handling agricultural clients are already dealing with increased volume. The sooner you automate, the less catches up.
+
+We're currently onboarding a small number of firms to shape the product around real workflows. There's no commitment — I'd just like to understand how you handle invoice processing today and whether automation would save your team meaningful time.
+
+Would you have 20 minutes this week or next for a quick call?
+
+Best,
+Walt Koleosho
+Morway
+walt@morway.app",Yes,"Kortrijk — West Flanders. Strong agricultural region (livestock, dairy)."
+2,BE,SBB Accountants & Advisors,Jan Lammens,Jan.lammens@sbb.be,SBB Accountants & Advisors — automating invoice processing for your agricultural clients,"Hi Jan,
+
+I'm building a tool that automates invoice processing for accounting firms with agricultural clients — and I think it could save your team real time.
+
+For firms managing dozens of farming clients, every month brings a pile of supplier invoices — feed, fertiliser, equipment, vet bills, fuel — each one needing to be opened, categorised, coded to the right account, and posted to your accounting system. Manually.
+
+We built Morway to handle exactly this. When an invoice arrives (PDF, email attachment, or structured e-invoice), Morway does three things:
+
+1. Parses the invoice automatically — extracts supplier, line items, amounts
+2. Categorises each line item using rules your firm sets (feed, fertiliser, equipment, etc.)
+3. Posts the bill to your accounting system — no manual data entry, no copy-paste
+
+When the system is confident in its categorisation, invoices post automatically. When something doesn't match, it flags it for your team to review in a clean dashboard. You stay in control — the software handles the repetitive work.
+
+Belgium's B2B e-invoicing mandate went live in January — firms handling agricultural clients are already dealing with increased volume. The sooner you automate, the less catches up.
+
+We're currently onboarding a small number of firms to shape the product around real workflows. There's no commitment — I'd just like to understand how you handle invoice processing today and whether automation would save your team meaningful time.
+
+Would you have 20 minutes this week or next for a quick call?
+
+Best,
+Walt Koleosho
+Morway
+walt@morway.app",Yes,Leuven. SBB is a well-known Belgian accounting group.
