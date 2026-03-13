@@ -123,7 +123,7 @@ export default async function ClientDetailPage({
           )}
           {client.accountingSystem === 'NONE' && (
             <Link
-              href="/dashboard/clients/onboard"
+              href={`/dashboard/clients/onboard?clientId=${client.id}&clientName=${encodeURIComponent(client.name)}`}
               className="px-4 py-2 bg-slate-900 text-white text-xs font-medium rounded-lg hover:bg-slate-800 transition-colors"
             >
               Set Up Accounting

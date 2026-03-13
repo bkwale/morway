@@ -1,7 +1,7 @@
 'use client'
 
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useState, useEffect, Suspense } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 
 type Step = 'details' | 'accounting' | 'rules' | 'done'
@@ -51,8 +51,17 @@ interface RuleEntry {
   accountCode: string
 }
 
-export default function OnboardPage() {
+export default function OnboardPageWrapper() {
+  return (
+    <Suspense fallback={<div className="p-8 text-center text-sm text-slate-400">Loading...</div>}>
+      <OnboardPage />
+    </Suspense>
+  )
+}
+
+function OnboardPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const [step, setStep] = useState<Step>('details')
   const [error, setError] = useState<string | null>(null)
 
@@ -62,6 +71,17 @@ export default function OnboardPage() {
   const [vatNumber, setVatNumber] = useState('')
   const [saving, setSaving] = useState(false)
   const [clientId, setClientId] = useState<string | null>(null)
+
+  // If clientId is passed as query param, skip step 1 (existing client setup)
+  useEffect(() => {
+    const qClientId = searchParams.get('clientId')
+    const qClientName = searchParams.get('clientName')
+    if (qClientId) {
+      setClientId(qClientId)
+      setClientName(qClientName ?? '')
+      setStep('accounting')
+    }
+  }, [searchParams])
 
   // Step 2: Accounting system
   const [selectedSystem, setSelectedSystem] = useState<AccountingSystem | null>(null)

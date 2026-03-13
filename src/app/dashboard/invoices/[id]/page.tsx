@@ -129,7 +129,7 @@ export default async function InvoiceDetailPage({
               )}
               {invoice.xeroInvoiceId && (
                 <div className="col-span-2">
-                  <p className="text-slate-400 text-xs uppercase tracking-wider mb-1">Xero Bill ID</p>
+                  <p className="text-slate-400 text-xs uppercase tracking-wider mb-1">External Bill ID</p>
                   <p className="text-slate-700 font-mono text-xs">{invoice.xeroInvoiceId}</p>
                 </div>
               )}
