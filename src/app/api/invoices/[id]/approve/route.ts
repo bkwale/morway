@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
-import { findOrCreateContact, postBillToXero } from '@/lib/xero'
+import { getAdapter } from '@/lib/accounting'
 import { INVOICE_STATUS, EXCEPTION_ACTION, AUDIT_ACTION } from '@/lib/constants'
 
 export async function POST(
@@ -33,71 +33,130 @@ export async function POST(
     return NextResponse.json({ error: 'Invoice is not in exception queue' }, { status: 422 })
   }
 
+  // Apply account code overrides to line items
   if (accountCodeOverrides && Object.keys(accountCodeOverrides).length > 0) {
     for (const [lineItemId, accountCode] of Object.entries(accountCodeOverrides)) {
       await db.lineItem.update({ where: { id: lineItemId }, data: { accountCode } })
     }
   }
 
+  // Check if all line items have account codes
   const lineItems = await db.lineItem.findMany({ where: { invoiceId } })
   const missingCodes = lineItems.filter((item) => !item.accountCode)
 
-  if (missingCodes.length > 0) {
+  // If there are line items and some are missing codes, reject
+  if (lineItems.length > 0 && missingCodes.length > 0) {
     return NextResponse.json(
       { error: `${missingCodes.length} line item(s) still missing account codes` },
       { status: 422 }
     )
   }
 
-  const xeroContact = await findOrCreateContact(invoice.clientId, {
-    name: invoice.supplier?.name ?? 'Unknown Supplier',
-    vatNumber: invoice.supplier?.vatNumber ?? null,
-  })
+  // Try to post to connected accounting system (if any)
+  let externalId: string | null = null
+  let externalRef: string | null = null
 
-  if (!xeroContact?.contactID) {
-    return NextResponse.json({ error: 'Could not find or create Xero contact' }, { status: 500 })
+  try {
+    const adapter = await getAdapter(invoice.client.accountingSystem)
+
+    if (adapter && adapter.isRealTime) {
+      const connected = await adapter.isConnected(invoice.clientId)
+
+      if (connected) {
+        // Find or create supplier contact in the external system
+        const contact = await adapter.findOrCreateContact(invoice.clientId, {
+          name: invoice.supplier?.name ?? 'Unknown Supplier',
+          vatNumber: invoice.supplier?.vatNumber ?? null,
+        })
+
+        if (contact?.contactId) {
+          const result = await adapter.postBill(invoice.clientId, contact.contactId, {
+            invoiceNumber: invoice.invoiceNumber,
+            invoiceDate: invoice.invoiceDate,
+            dueDate: invoice.dueDate,
+            currency: invoice.currency,
+            supplierName: invoice.supplier?.name ?? 'Unknown Supplier',
+            supplierVatNumber: invoice.supplier?.vatNumber ?? null,
+            lineItems: lineItems.map((item) => ({
+              description: item.description,
+              quantity: item.quantity,
+              unitAmount: item.unitPrice,
+              accountCode: item.accountCode ?? '',
+            })),
+          })
+
+          if (result.success) {
+            externalId = result.externalId
+            externalRef = result.externalRef ?? null
+          } else {
+            console.warn(`[approve] External post failed: ${result.error}`)
+            // Don't block approval — just log it
+          }
+        }
+      }
+    }
+  } catch (err) {
+    // Log but don't block the approval
+    console.warn(`[approve] Accounting system error:`, err instanceof Error ? err.message : err)
   }
 
-  const xeroBill = await postBillToXero(invoice.clientId, xeroContact.contactID, {
-    invoiceNumber: invoice.invoiceNumber,
-    invoiceDate: invoice.invoiceDate,
-    dueDate: invoice.dueDate,
-    currency: invoice.currency,
-    lineItems: lineItems.map((item) => ({
-      description: item.description,
-      quantity: item.quantity,
-      unitAmount: item.unitPrice,
-      accountCode: item.accountCode!,
-    })),
-  })
-
-  if (!xeroBill?.invoiceID) {
-    return NextResponse.json({ error: 'Xero bill creation failed' }, { status: 500 })
-  }
-
+  // Resolve the exception and mark approved
   const hasOverrides = accountCodeOverrides && Object.keys(accountCodeOverrides).length > 0
   const action = hasOverrides ? EXCEPTION_ACTION.EDITED_AND_APPROVED : EXCEPTION_ACTION.APPROVED
 
-  await db.$transaction([
+  const updateData: Record<string, unknown> = {
+    status: INVOICE_STATUS.APPROVED,
+    postedAt: new Date(),
+  }
+  if (externalId) updateData.xeroInvoiceId = externalId
+  if (externalRef) updateData.externalRef = externalRef
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const txOps: any[] = [
     db.invoice.update({
       where: { id: invoiceId },
-      data: { status: INVOICE_STATUS.APPROVED, xeroInvoiceId: xeroBill.invoiceID, postedAt: new Date() },
-    }),
-    db.exception.update({
-      where: { invoiceId },
-      data: { resolvedAt: new Date(), resolution: action },
-    }),
-    db.exceptionReview.create({
-      data: { exceptionId: invoice.exception!.id, userId, action, notes },
+      data: updateData,
     }),
     db.auditLog.create({
       data: {
         invoiceId,
         action: AUDIT_ACTION.EXCEPTION_APPROVED,
-        detail: JSON.stringify({ userId, action, xeroInvoiceId: xeroBill.invoiceID, overrides: accountCodeOverrides }),
+        detail: JSON.stringify({
+          userId,
+          action,
+          externalId,
+          externalRef,
+          overrides: accountCodeOverrides,
+          notes,
+        }),
       },
     }),
-  ])
+  ]
 
-  return NextResponse.json({ success: true, xeroInvoiceId: xeroBill.invoiceID })
+  // Only update exception if it exists
+  if (invoice.exception) {
+    txOps.push(
+      db.exception.update({
+        where: { invoiceId },
+        data: { resolvedAt: new Date(), resolution: action },
+      })
+    )
+
+    if (userId) {
+      txOps.push(
+        db.exceptionReview.create({
+          data: { exceptionId: invoice.exception.id, userId, action, notes },
+        })
+      )
+    }
+  }
+
+  await db.$transaction(txOps)
+
+  return NextResponse.json({
+    success: true,
+    externalId,
+    externalRef,
+    accountingSystem: invoice.client.accountingSystem,
+  })
 }

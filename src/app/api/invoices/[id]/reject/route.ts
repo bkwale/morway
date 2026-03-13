@@ -22,17 +22,11 @@ export async function POST(
     return NextResponse.json({ error: 'Invoice is not in exception queue' }, { status: 422 })
   }
 
-  await db.$transaction([
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const txOps: any[] = [
     db.invoice.update({
       where: { id: invoiceId },
       data: { status: INVOICE_STATUS.REJECTED },
-    }),
-    db.exception.update({
-      where: { invoiceId },
-      data: { resolvedAt: new Date(), resolution: EXCEPTION_ACTION.REJECTED },
-    }),
-    db.exceptionReview.create({
-      data: { exceptionId: invoice.exception!.id, userId, action: EXCEPTION_ACTION.REJECTED, notes },
     }),
     db.auditLog.create({
       data: {
@@ -41,7 +35,26 @@ export async function POST(
         detail: JSON.stringify({ userId, notes }),
       },
     }),
-  ])
+  ]
+
+  if (invoice.exception) {
+    txOps.push(
+      db.exception.update({
+        where: { invoiceId },
+        data: { resolvedAt: new Date(), resolution: EXCEPTION_ACTION.REJECTED },
+      })
+    )
+
+    if (userId) {
+      txOps.push(
+        db.exceptionReview.create({
+          data: { exceptionId: invoice.exception.id, userId, action: EXCEPTION_ACTION.REJECTED, notes },
+        })
+      )
+    }
+  }
+
+  await db.$transaction(txOps)
 
   return NextResponse.json({ success: true })
 }

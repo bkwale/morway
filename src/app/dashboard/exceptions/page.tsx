@@ -146,7 +146,12 @@ export default function ExceptionsPage() {
         setInvoices((prev) => prev.filter((i) => i.id !== selected.id))
         setToast({ message: `Invoice ${selected.invoiceNumber} approved & posted`, type: 'success' })
         setSelected(null)
+      } else {
+        const data = await res.json().catch(() => ({ error: `Server error (${res.status})` }))
+        setToast({ message: data.error || 'Approval failed', type: 'error' })
       }
+    } catch (err) {
+      setToast({ message: `Network error: ${err instanceof Error ? err.message : 'unknown'}`, type: 'error' })
     } finally {
       setSubmitting(false)
     }
@@ -165,7 +170,12 @@ export default function ExceptionsPage() {
         setInvoices((prev) => prev.filter((i) => i.id !== selected.id))
         setToast({ message: `Invoice ${selected.invoiceNumber} rejected`, type: 'success' })
         setSelected(null)
+      } else {
+        const data = await res.json().catch(() => ({ error: `Server error (${res.status})` }))
+        setToast({ message: data.error || 'Rejection failed', type: 'error' })
       }
+    } catch (err) {
+      setToast({ message: `Network error: ${err instanceof Error ? err.message : 'unknown'}`, type: 'error' })
     } finally {
       setSubmitting(false)
     }

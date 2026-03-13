@@ -542,6 +542,21 @@ async function createInvoiceRecord(
     },
   })
 
+  // Create line item records
+  if (parsed.lineItems.length > 0) {
+    await db.lineItem.createMany({
+      data: parsed.lineItems.map((item) => ({
+        invoiceId: invoice.id,
+        description: item.description,
+        quantity: item.quantity,
+        unitPrice: item.unitPrice,
+        vatRate: item.vatRate,
+        lineTotal: item.lineTotal,
+        accountCode: null,
+      })),
+    })
+  }
+
   await db.auditLog.create({
     data: {
       invoiceId: invoice.id,
