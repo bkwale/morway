@@ -12,9 +12,11 @@ import Anthropic from '@anthropic-ai/sdk'
 import type { ParsedInvoice, ParsedLineItem } from './ubl-parser'
 
 async function extractTextFromPdf(buffer: Buffer): Promise<string> {
-  // pdf-parse v1.1.1 exports a single function: (buffer) => Promise<{text, numpages, info}>
+  // pdf-parse v1.1.1 has a bug: require('pdf-parse') runs test code when
+  // module.parent is falsy (happens in Next.js serverless). We use a CJS
+  // wrapper that imports the internal lib directly, skipping the test harness.
   // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const pdfParse = require('pdf-parse') as (buf: Buffer) => Promise<{ text: string; numpages: number }>
+  const pdfParse = require('./pdf-parse-safe.cjs') as (buf: Buffer) => Promise<{ text: string; numpages: number }>
   const result = await pdfParse(buffer)
   return result.text ?? ''
 }
