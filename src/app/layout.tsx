@@ -15,6 +15,10 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Morway — Invoice Automation for Accounting Firms",
   description: "Automate invoice processing from email to your accounting system. Built for accounting firms serving agriculture.",
+  icons: {
+    icon: '/icon.svg',
+    apple: '/icon.svg',
+  },
 };
 
 export default function RootLayout({

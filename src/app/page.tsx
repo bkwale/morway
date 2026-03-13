@@ -1,11 +1,12 @@
 import Link from 'next/link'
+import Image from 'next/image'
 
 export default function LandingPage() {
   return (
     <div className="min-h-screen bg-white">
       {/* Nav */}
       <nav className="border-b border-slate-100 px-8 py-4 flex items-center justify-between max-w-6xl mx-auto">
-        <span className="text-xl font-bold text-slate-900 tracking-tight">Morway</span>
+        <Image src="/logo.svg" alt="Morway" width={140} height={36} priority />
         <Link
           href="/dashboard"
           className="px-4 py-2 bg-slate-900 text-white text-sm font-medium rounded-lg hover:bg-slate-800 transition-colors"

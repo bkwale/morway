@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import Image from 'next/image'
 import { usePathname } from 'next/navigation'
 
 const NAV_ITEMS = [
@@ -23,9 +24,9 @@ export default function DashboardLayout({
     <div className="min-h-screen bg-slate-50 flex">
       {/* Sidebar */}
       <aside className="w-60 bg-slate-900 text-white flex flex-col">
-        <div className="px-6 py-6">
-          <span className="text-xl font-bold tracking-tight">Morway</span>
-          <p className="text-xs text-slate-400 mt-0.5">Accounting Automation</p>
+        <div className="px-5 py-5">
+          <Image src="/icon.svg" alt="Morway" width={36} height={36} className="rounded-lg" />
+          <p className="text-xs text-slate-400 mt-2">Invoice Automation</p>
         </div>
 
         <nav className="flex-1 px-3 py-2 space-y-0.5">
