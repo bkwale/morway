@@ -2,7 +2,7 @@
  * PDF Invoice Parser
  *
  * Extracts structured invoice data from PDF files.
- * Uses pdf-parse for text extraction, then Claude for intelligent structuring.
+ * Uses pdfjs-dist (Mozilla PDF.js) for text extraction, then Claude for structuring.
  *
  * Returns the same ParsedInvoice shape as the UBL parser so the rest
  * of the pipeline doesn't care where the invoice came from.
@@ -12,13 +12,22 @@ import Anthropic from '@anthropic-ai/sdk'
 import type { ParsedInvoice, ParsedLineItem } from './ubl-parser'
 
 async function extractTextFromPdf(buffer: Buffer): Promise<string> {
-  // pdf-parse v1.1.1 has a bug: require('pdf-parse') runs test code when
-  // module.parent is falsy (happens in Next.js serverless). We use a CJS
-  // wrapper that imports the internal lib directly, skipping the test harness.
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const pdfParse = require('./pdf-parse-safe.cjs') as (buf: Buffer) => Promise<{ text: string; numpages: number }>
-  const result = await pdfParse(buffer)
-  return result.text ?? ''
+  // pdfjs-dist: Mozilla's PDF.js — the industry standard, no test-file bugs.
+  const pdfjsLib = await import('pdfjs-dist/legacy/build/pdf.mjs')
+  const data = new Uint8Array(buffer)
+  const doc = await pdfjsLib.getDocument({ data, useSystemFonts: true }).promise
+
+  const pages: string[] = []
+  for (let i = 1; i <= doc.numPages; i++) {
+    const page = await doc.getPage(i)
+    const content = await page.getTextContent()
+    const text = content.items
+      .map((item) => ('str' in item ? item.str : ''))
+      .join(' ')
+    pages.push(text)
+  }
+
+  return pages.join('\n\n')
 }
 
 const EXTRACTION_PROMPT = `You are an invoice data extraction system. Extract structured data from this invoice text.
