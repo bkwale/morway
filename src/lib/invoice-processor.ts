@@ -60,13 +60,14 @@ export async function processInvoice(invoiceId: string): Promise<void> {
 
     try {
       const maybeJson = JSON.parse(invoice.rawXml)
-      if (maybeJson._source === 'EMAIL_PDF') {
+      if (maybeJson._source === 'EMAIL_PDF' || maybeJson._source === 'EMAIL_BODY') {
         isPreParsed = true
         parsed = {
           invoiceNumber: maybeJson.invoiceNumber ?? invoice.invoiceNumber,
           invoiceDate: new Date(maybeJson.invoiceDate ?? invoice.invoiceDate),
           dueDate: maybeJson.dueDate ? new Date(maybeJson.dueDate) : invoice.dueDate,
           currency: maybeJson.currency ?? invoice.currency,
+          documentType: maybeJson._documentType ?? maybeJson.documentType ?? 'INVOICE',
           supplier: maybeJson.supplier ?? { name: '', vatNumber: null, address: null },
           buyer: maybeJson.buyer ?? { name: '', vatNumber: null, peppolId: null },
           lineItems: maybeJson.lineItems ?? [],

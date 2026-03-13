@@ -98,6 +98,7 @@ export async function POST(req: NextRequest) {
       processed: true,
       clientId: result.clientId,
       invoicesCreated: result.invoicesCreated,
+      duplicatesSkipped: result.duplicatesSkipped,
       errors: result.errors,
     })
   } catch (err) {

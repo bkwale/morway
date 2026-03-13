@@ -1,11 +1,14 @@
 import { DOMParser } from 'xmldom'
 import * as xpath from 'xpath'
 
+export type DocumentType = 'INVOICE' | 'CREDIT_NOTE'
+
 export interface ParsedInvoice {
   invoiceNumber: string
   invoiceDate: Date
   dueDate: Date | null
   currency: string
+  documentType: DocumentType
   supplier: {
     name: string
     vatNumber: string | null
@@ -90,6 +93,7 @@ export function parseUBLInvoice(xml: string): ParsedInvoice {
       invoiceDate: new Date(),
       dueDate: null,
       currency: 'EUR',
+      documentType: 'INVOICE' as const,
       supplier: { name: '', vatNumber: null, address: null },
       buyer: { name: '', vatNumber: null, peppolId: null },
       lineItems: [],
@@ -152,11 +156,17 @@ export function parseUBLInvoice(xml: string): ParsedInvoice {
     }
   })
 
+  // Detect credit notes from UBL root element or InvoiceTypeCode
+  const rootTag = doc.documentElement?.localName?.toLowerCase() ?? ''
+  const typeCode = select(doc, '//cbc:InvoiceTypeCode')
+  const isCreditNote = rootTag === 'creditnote' || typeCode === '381'
+
   return {
     invoiceNumber,
     invoiceDate,
     dueDate: parseDate(dueDateStr),
     currency,
+    documentType: isCreditNote ? 'CREDIT_NOTE' : 'INVOICE',
     supplier: {
       name: supplierName,
       vatNumber: supplierVat || null,

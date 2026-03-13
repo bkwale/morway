@@ -9,7 +9,7 @@
  */
 
 import Anthropic from '@anthropic-ai/sdk'
-import type { ParsedInvoice, ParsedLineItem } from './ubl-parser'
+import type { ParsedInvoice, ParsedLineItem, DocumentType } from './ubl-parser'
 
 async function extractTextFromPdf(buffer: Buffer): Promise<string> {
   // unpdf: serverless-compatible PDF text extraction (no DOM/DOMMatrix needed)
@@ -19,14 +19,22 @@ async function extractTextFromPdf(buffer: Buffer): Promise<string> {
   return Array.isArray(text) ? text.join('\n\n') : (text ?? '')
 }
 
-const EXTRACTION_PROMPT = `You are an invoice data extraction system. Extract structured data from invoice text.
+const EXTRACTION_PROMPT = `You are a multilingual invoice data extraction system used by EU accounting firms.
+You MUST handle invoices in ANY language — German, French, Dutch, Italian, Spanish, Polish, Estonian, English, and others.
 
-The PDF may contain ONE or MULTIPLE invoices. Return a JSON array of invoice objects.
+Common field names by language:
+- Rechnung/Rechnungsnummer/Rechnungsdatum/Fälligkeitsdatum/MwSt/Nettobetrag/Bruttobetrag (German)
+- Facture/Numéro/Date/Échéance/TVA/Montant HT/Montant TTC (French)
+- Factuur/Factuurnummer/Factuurdatum/Vervaldatum/BTW/Netto/Bruto (Dutch)
+- Fattura/Numero/Data/Scadenza/IVA/Imponibile/Totale (Italian)
 
-Return ONLY a JSON array (no markdown, no explanation, no code fences), like this:
+The document may contain ONE or MULTIPLE invoices. It may also contain CREDIT NOTES (Gutschrift, Avoir, Creditnota, Nota di credito).
+
+Return ONLY a JSON array (no markdown, no explanation, no code fences):
 
 [
   {
+    "documentType": "invoice" or "credit_note",
     "invoiceNumber": "string",
     "invoiceDate": "YYYY-MM-DD",
     "dueDate": "YYYY-MM-DD or null",
@@ -42,7 +50,7 @@ Return ONLY a JSON array (no markdown, no explanation, no code fences), like thi
     },
     "lineItems": [
       {
-        "description": "string",
+        "description": "string (translate to English if needed)",
         "quantity": number,
         "unitPrice": number,
         "vatRate": number,
@@ -57,6 +65,7 @@ Return ONLY a JSON array (no markdown, no explanation, no code fences), like thi
 
 Rules:
 - All amounts as numbers (not strings), using period as decimal separator
+- For credit notes: amounts should be POSITIVE — the system handles sign logic
 - VAT rate as percentage (e.g., 19 not 0.19)
 - If you can't find a field, use null for strings or 0 for numbers
 - invoiceDate and dueDate in YYYY-MM-DD format
@@ -64,7 +73,8 @@ Rules:
 - Extract ALL line items visible in each invoice
 - Currency should be 3-letter ISO code
 - If there is only ONE invoice, still return it inside an array: [{ ... }]
-- Extract EVERY invoice found in the text — do not skip any
+- Extract EVERY invoice and credit note found — do not skip any
+- documentType: "credit_note" for Gutschrift, Avoir, Creditnota, credit memo, or negative totals
 - Return ONLY the JSON array, nothing else`
 
 /**
@@ -134,6 +144,133 @@ export async function parsePdfInvoices(pdfBuffer: Buffer): Promise<ParsedInvoice
 export async function parsePdfInvoice(pdfBuffer: Buffer): Promise<ParsedInvoice> {
   const results = await parsePdfInvoices(pdfBuffer)
   return results[0] ?? emptyInvoice(['No invoices found in PDF'])
+}
+
+// ─── IMAGE INVOICE PARSING ───────────────────────────────────────────────────
+
+/**
+ * Parse invoice data from an image (JPG, PNG, TIFF, WebP).
+ * Uses Claude's vision API to extract structured data from photographed/scanned invoices.
+ * Small suppliers often send photos of handwritten or printed invoices.
+ */
+export async function parseImageInvoices(
+  imageBuffer: Buffer,
+  mimeType: 'image/jpeg' | 'image/png' | 'image/webp' | 'image/gif'
+): Promise<ParsedInvoice[]> {
+  const apiKey = process.env.ANTHROPIC_API_KEY
+  if (!apiKey) {
+    return [emptyInvoice(['ANTHROPIC_API_KEY not configured — cannot parse image invoices'])]
+  }
+
+  const anthropic = new Anthropic({ apiKey })
+
+  try {
+    const base64 = imageBuffer.toString('base64')
+
+    const response = await anthropic.messages.create({
+      model: 'claude-sonnet-4-6',
+      max_tokens: 4000,
+      messages: [
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'image',
+              source: {
+                type: 'base64',
+                media_type: mimeType,
+                data: base64,
+              },
+            },
+            {
+              type: 'text',
+              text: EXTRACTION_PROMPT + '\n\nExtract invoice data from this image. The image may be a scan, photo, or screenshot of one or more invoices.',
+            },
+          ],
+        },
+      ],
+    })
+
+    const text = response.content[0].type === 'text' ? response.content[0].text : ''
+    const parsed = extractJsonFromResponse(text)
+    if (!parsed) {
+      return [emptyInvoice(['Vision extraction returned no parseable JSON'])]
+    }
+
+    const rawItems = Array.isArray(parsed)
+      ? (parsed as Array<Record<string, unknown>>)
+      : [parsed as Record<string, unknown>]
+
+    if (rawItems.length === 0) {
+      return [emptyInvoice(['Vision extraction returned empty array'])]
+    }
+
+    return rawItems.map((extracted) => mapToParsedInvoice(extracted))
+  } catch (err) {
+    return [emptyInvoice([`Vision extraction failed: ${err instanceof Error ? err.message : 'unknown error'}`])]
+  }
+}
+
+// ─── EMAIL BODY PARSING ─────────────────────────────────────────────────────
+
+/**
+ * Parse invoice data from email body text.
+ * Fallback when an email has no attachments but contains invoice details inline.
+ * Common with small suppliers who paste invoice details directly in the email.
+ */
+export async function parseEmailBodyInvoices(
+  subject: string,
+  bodyText: string
+): Promise<ParsedInvoice[]> {
+  const apiKey = process.env.ANTHROPIC_API_KEY
+  if (!apiKey) {
+    return [emptyInvoice(['ANTHROPIC_API_KEY not configured — cannot parse email body'])]
+  }
+
+  // Heuristic: skip if body is too short or looks like a generic email
+  const text = bodyText.trim()
+  if (text.length < 50) {
+    return [emptyInvoice(['Email body too short to contain invoice data'])]
+  }
+
+  // Check for invoice-like signals in subject + body
+  const invoiceSignals = /invoice|rechnung|factur|fattura|credit.?note|gutschrift|avoir|amount|total|€|\$|£|¥|betrag|montant/i
+  if (!invoiceSignals.test(subject) && !invoiceSignals.test(text)) {
+    return [emptyInvoice(['Email body does not appear to contain invoice data'])]
+  }
+
+  const anthropic = new Anthropic({ apiKey })
+
+  try {
+    const response = await anthropic.messages.create({
+      model: 'claude-sonnet-4-6',
+      max_tokens: 4000,
+      messages: [
+        {
+          role: 'user',
+          content: `${EXTRACTION_PROMPT}\n\nEmail subject: ${subject}\n\nEmail body:\n\n${text.slice(0, 8000)}`,
+        },
+      ],
+    })
+
+    const responseText = response.content[0].type === 'text' ? response.content[0].text : ''
+    const parsed = extractJsonFromResponse(responseText)
+    if (!parsed) {
+      return [emptyInvoice(['Email body extraction returned no parseable JSON'])]
+    }
+
+    const rawItems = Array.isArray(parsed)
+      ? (parsed as Array<Record<string, unknown>>)
+      : [parsed as Record<string, unknown>]
+
+    if (rawItems.length === 0) {
+      return [emptyInvoice(['Email body extraction returned empty array'])]
+    }
+
+    return rawItems.map((extracted) => mapToParsedInvoice(extracted))
+  } catch (err) {
+    return [emptyInvoice([`Email body extraction failed: ${err instanceof Error ? err.message : 'unknown error'}`])]
+  }
 }
 
 // ─── JSON EXTRACTION ──────────────────────────────────────────────────────────
@@ -240,6 +377,10 @@ function extractBalanced(text: string, start: number, open: string, close: strin
 function mapToParsedInvoice(extracted: Record<string, unknown>): ParsedInvoice {
   const errors: string[] = []
 
+  // Document type detection
+  const rawDocType = String(extracted.documentType ?? 'invoice').toLowerCase()
+  const documentType: DocumentType = rawDocType === 'credit_note' ? 'CREDIT_NOTE' : 'INVOICE'
+
   const invoiceNumber = String(extracted.invoiceNumber ?? '')
   if (!invoiceNumber) errors.push('Could not extract invoice number')
 
@@ -269,6 +410,7 @@ function mapToParsedInvoice(extracted: Record<string, unknown>): ParsedInvoice {
     invoiceDate: isNaN(invoiceDate.getTime()) ? new Date() : invoiceDate,
     dueDate: dueDate && !isNaN(dueDate.getTime()) ? dueDate : null,
     currency: String(extracted.currency ?? 'EUR'),
+    documentType,
     supplier: {
       name: String(supplier?.name ?? ''),
       vatNumber: supplier?.vatNumber ? String(supplier.vatNumber) : null,
@@ -300,6 +442,7 @@ function emptyInvoice(errors: string[]): ParsedInvoice {
     invoiceDate: new Date(),
     dueDate: null,
     currency: 'EUR',
+    documentType: 'INVOICE',
     supplier: { name: '', vatNumber: null, address: null },
     buyer: { name: '', vatNumber: null, peppolId: null },
     lineItems: [],
