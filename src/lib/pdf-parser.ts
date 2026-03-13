@@ -12,22 +12,11 @@ import Anthropic from '@anthropic-ai/sdk'
 import type { ParsedInvoice, ParsedLineItem } from './ubl-parser'
 
 async function extractTextFromPdf(buffer: Buffer): Promise<string> {
-  // pdfjs-dist: Mozilla's PDF.js — the industry standard, no test-file bugs.
-  const pdfjsLib = await import('pdfjs-dist/legacy/build/pdf.mjs')
-  const data = new Uint8Array(buffer)
-  const doc = await pdfjsLib.getDocument({ data, useSystemFonts: true }).promise
-
-  const pages: string[] = []
-  for (let i = 1; i <= doc.numPages; i++) {
-    const page = await doc.getPage(i)
-    const content = await page.getTextContent()
-    const text = content.items
-      .map((item) => ('str' in item ? item.str : ''))
-      .join(' ')
-    pages.push(text)
-  }
-
-  return pages.join('\n\n')
+  // unpdf: serverless-compatible PDF text extraction (no DOM/DOMMatrix needed)
+  const { extractText } = await import('unpdf')
+  const result = await extractText(new Uint8Array(buffer))
+  const text = result.text
+  return Array.isArray(text) ? text.join('\n\n') : (text ?? '')
 }
 
 const EXTRACTION_PROMPT = `You are an invoice data extraction system. Extract structured data from this invoice text.
