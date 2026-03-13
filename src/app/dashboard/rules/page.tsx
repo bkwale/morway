@@ -1,7 +1,6 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import Link from 'next/link'
 
 interface Rule {
   id: string
@@ -105,6 +104,9 @@ export default function RulesPage() {
     return 'bg-slate-50 text-slate-600 border-slate-200'
   }
 
+  const activeRules = rules.filter((r) => r.active)
+  const disabledRules = rules.filter((r) => !r.active)
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-full">
@@ -114,13 +116,13 @@ export default function RulesPage() {
   }
 
   return (
-    <div className="p-8">
-      <div className="flex items-center justify-between mb-6">
+    <div className="p-6 lg:p-8 max-w-[1000px]">
+      {/* Header */}
+      <div className="flex items-center justify-between mb-5">
         <div>
-          <h1 className="text-2xl font-semibold text-slate-900">Rules</h1>
-          <p className="text-sm text-slate-500 mt-1">
-            {rules.filter((r) => r.active).length} active rule{rules.filter((r) => r.active).length !== 1 ? 's' : ''}
-            {' · '}Rules determine how invoices are categorised automatically
+          <h1 className="text-xl font-semibold text-slate-900">Rules</h1>
+          <p className="text-sm text-slate-400 mt-0.5">
+            {activeRules.length} active · {disabledRules.length} disabled
           </p>
         </div>
         <button
@@ -132,19 +134,18 @@ export default function RulesPage() {
       </div>
 
       {/* How rules work */}
-      <div className="bg-blue-50/50 border border-blue-100 rounded-xl px-5 py-4 mb-6">
-        <p className="text-sm text-blue-800 font-medium mb-1">How rules work</p>
-        <p className="text-xs text-blue-600 leading-relaxed">
-          When an invoice arrives, Morway checks each line item description against your rules. If a keyword matches, the
-          corresponding account code is applied automatically. Rules are evaluated by priority (highest first) and scope
-          (supplier-specific beats client-specific beats firm-wide). Invoices with all line items matched at 80%+ confidence
-          are auto-posted to Xero. The rest go to your exception queue for review.
+      <div className="bg-slate-50 border border-slate-200 rounded-xl px-5 py-4 mb-5">
+        <p className="text-sm text-slate-600 leading-relaxed">
+          When an invoice arrives, Morway checks each line item description against your rules.
+          If a keyword matches, the account code is applied automatically. Rules are evaluated by
+          priority (highest first) and scope (supplier &gt; client &gt; firm-wide). Invoices with
+          all items matched at 80%+ confidence are auto-posted. The rest go to exceptions.
         </p>
       </div>
 
       {/* Create form */}
       {showForm && (
-        <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6 mb-6">
+        <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6 mb-5">
           <h2 className="text-base font-semibold text-slate-900 mb-4">New Rule</h2>
           <form onSubmit={handleCreate} className="space-y-4">
             <div className="grid grid-cols-3 gap-4">
@@ -168,10 +169,10 @@ export default function RulesPage() {
                   value={accountCode}
                   onChange={(e) => setAccountCode(e.target.value)}
                   required
-                  placeholder="e.g. 429, 600, 300"
+                  placeholder="e.g. 4200, 6300, 3000"
                   className="w-full px-3 py-2.5 bg-white text-slate-900 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-slate-900 focus:border-transparent placeholder:text-slate-400"
                 />
-                <p className="mt-1 text-xs text-slate-400">Xero chart of accounts code</p>
+                <p className="mt-1 text-xs text-slate-400">Chart of accounts code</p>
               </div>
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1.5">Priority</label>
@@ -202,51 +203,62 @@ export default function RulesPage() {
         </div>
       )}
 
-      {/* Rules table */}
-      <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="bg-slate-50/60">
-              <th className="text-left px-6 py-3 text-xs font-medium text-slate-500 uppercase tracking-wider">Keyword</th>
-              <th className="text-left px-6 py-3 text-xs font-medium text-slate-500 uppercase tracking-wider">Account Code</th>
-              <th className="text-left px-6 py-3 text-xs font-medium text-slate-500 uppercase tracking-wider">Scope</th>
-              <th className="text-right px-6 py-3 text-xs font-medium text-slate-500 uppercase tracking-wider">Priority</th>
-              <th className="text-left px-6 py-3 text-xs font-medium text-slate-500 uppercase tracking-wider">Status</th>
-              <th className="px-6 py-3" />
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-100">
-            {rules.length === 0 && (
-              <tr>
-                <td colSpan={6} className="px-6 py-12 text-center text-slate-400">
-                  No rules yet. Add your first rule to start auto-categorising invoices.
-                </td>
-              </tr>
-            )}
-            {rules.map((rule) => (
-              <tr key={rule.id} className={`hover:bg-slate-50/50 transition-colors ${!rule.active ? 'opacity-50' : ''}`}>
-                <td className="px-6 py-3.5">
-                  {rule.keyword ? (
-                    <span className="font-mono text-sm text-slate-900">&quot;{rule.keyword}&quot;</span>
-                  ) : (
-                    <span className="text-slate-400 italic">Default / catch-all</span>
-                  )}
-                </td>
-                <td className="px-6 py-3.5">
-                  <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-mono font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">
-                    {rule.accountCode}
-                  </span>
-                </td>
-                <td className="px-6 py-3.5">
-                  <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-medium border ${getScopeStyle(rule)}`}>
-                    {getScopeLabel(rule)}
-                  </span>
-                </td>
-                <td className="px-6 py-3.5 text-right text-slate-600 tabular-nums">{rule.priority}</td>
-                <td className="px-6 py-3.5">
+      {/* Rules list */}
+      {rules.length === 0 ? (
+        <div className="bg-white rounded-xl border border-slate-200 shadow-sm px-6 py-12 text-center">
+          <p className="text-sm text-slate-500 mb-2">No rules yet</p>
+          <p className="text-xs text-slate-400 mb-4">Add your first rule to start auto-categorising invoices</p>
+          <button
+            onClick={() => setShowForm(true)}
+            className="px-4 py-2 bg-slate-900 text-white text-xs font-medium rounded-lg hover:bg-slate-800 transition-colors"
+          >
+            + Add Rule
+          </button>
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {rules
+            .sort((a, b) => b.priority - a.priority)
+            .map((rule) => (
+              <div
+                key={rule.id}
+                className={`bg-white rounded-xl border border-slate-200 shadow-sm px-5 py-4 flex items-center gap-4 transition-all ${
+                  !rule.active ? 'opacity-50' : ''
+                }`}
+              >
+                {/* Priority badge */}
+                <div className="w-10 h-10 rounded-lg bg-slate-50 flex items-center justify-center shrink-0">
+                  <span className="text-sm font-bold text-slate-400 tabular-nums">{rule.priority}</span>
+                </div>
+
+                {/* Rule info */}
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 mb-1">
+                    {rule.keyword ? (
+                      <span className="font-mono text-sm text-slate-900 font-medium">&quot;{rule.keyword}&quot;</span>
+                    ) : (
+                      <span className="text-sm text-slate-400 italic">Default / catch-all</span>
+                    )}
+                    <span className="text-slate-300">&#8594;</span>
+                    <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-mono font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">
+                      {rule.accountCode}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-medium border ${getScopeStyle(rule)}`}>
+                      {getScopeLabel(rule)}
+                    </span>
+                    <span className="text-xs text-slate-400">
+                      Created {new Date(rule.createdAt).toLocaleDateString('en-GB')}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Actions */}
+                <div className="flex items-center gap-2 shrink-0">
                   <button
                     onClick={() => toggleRule(rule)}
-                    className={`inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-medium border cursor-pointer transition-colors ${
+                    className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${
                       rule.active
                         ? 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100'
                         : 'bg-slate-50 text-slate-500 border-slate-200 hover:bg-slate-100'
@@ -254,20 +266,17 @@ export default function RulesPage() {
                   >
                     {rule.active ? 'Active' : 'Disabled'}
                   </button>
-                </td>
-                <td className="px-6 py-3.5 text-right">
                   <button
                     onClick={() => deleteRule(rule.id)}
-                    className="text-xs text-slate-400 hover:text-red-600 transition-colors"
+                    className="px-2 py-1.5 text-xs text-slate-400 hover:text-red-600 transition-colors"
                   >
                     Delete
                   </button>
-                </td>
-              </tr>
+                </div>
+              </div>
             ))}
-          </tbody>
-        </table>
-      </div>
+        </div>
+      )}
     </div>
   )
 }
