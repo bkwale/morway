@@ -58,7 +58,9 @@ Rules:
 - invoiceDate and dueDate in YYYY-MM-DD format
 - If only one total is visible, put it in grossAmount and estimate net/VAT from context
 - Extract ALL line items visible in the invoice
-- Currency should be 3-letter ISO code`
+- Currency should be 3-letter ISO code
+- If the PDF contains multiple invoices, extract only the FIRST one
+- Return exactly ONE JSON object, nothing else — no arrays, no multiple objects, no explanation`
 
 /**
  * Parse a PDF invoice into structured data using AI extraction.
@@ -101,13 +103,14 @@ export async function parsePdfInvoice(pdfBuffer: Buffer): Promise<ParsedInvoice>
 
     const text = response.content[0].type === 'text' ? response.content[0].text : ''
 
-    // Extract JSON from response (handle possible markdown wrapping)
-    const jsonMatch = text.match(/\{[\s\S]*\}/)
-    if (!jsonMatch) {
+    // Extract the first complete JSON object from the response
+    // (handles markdown wrapping, multiple objects, or trailing commentary)
+    const jsonStr = extractFirstJsonObject(text)
+    if (!jsonStr) {
       return emptyInvoice(['AI extraction returned no JSON'])
     }
 
-    extracted = JSON.parse(jsonMatch[0])
+    extracted = JSON.parse(jsonStr)
   } catch (err) {
     return emptyInvoice([`AI extraction failed: ${err instanceof Error ? err.message : 'unknown error'}`])
   }
@@ -161,6 +164,62 @@ export async function parsePdfInvoice(pdfBuffer: Buffer): Promise<ParsedInvoice>
 }
 
 // ─── HELPERS ──────────────────────────────────────────────────────────────────
+
+/**
+ * Extract the first balanced JSON object from a string.
+ * Handles markdown code fences, trailing text, and multiple JSON objects.
+ */
+function extractFirstJsonObject(text: string): string | null {
+  // First, try to extract from a markdown code fence
+  const fenceMatch = text.match(/```(?:json)?\s*(\{[\s\S]*?\})\s*```/)
+  if (fenceMatch) {
+    try {
+      JSON.parse(fenceMatch[1])
+      return fenceMatch[1]
+    } catch {
+      // Fall through to brace-counting approach
+    }
+  }
+
+  // Find the first '{' and count braces to find the matching '}'
+  const start = text.indexOf('{')
+  if (start === -1) return null
+
+  let depth = 0
+  let inString = false
+  let escape = false
+
+  for (let i = start; i < text.length; i++) {
+    const ch = text[i]
+
+    if (escape) {
+      escape = false
+      continue
+    }
+
+    if (ch === '\\' && inString) {
+      escape = true
+      continue
+    }
+
+    if (ch === '"') {
+      inString = !inString
+      continue
+    }
+
+    if (inString) continue
+
+    if (ch === '{') depth++
+    else if (ch === '}') {
+      depth--
+      if (depth === 0) {
+        return text.slice(start, i + 1)
+      }
+    }
+  }
+
+  return null
+}
 
 function safeNumber(value: unknown, fallback: number): number {
   const n = Number(value)
