@@ -43,7 +43,7 @@ export default async function ClientsPage() {
             <tr className="bg-slate-50/60">
               <th className="text-left px-6 py-3 text-xs font-medium text-slate-500 uppercase tracking-wider">Client</th>
               <th className="text-left px-6 py-3 text-xs font-medium text-slate-500 uppercase tracking-wider">Peppol ID</th>
-              <th className="text-left px-6 py-3 text-xs font-medium text-slate-500 uppercase tracking-wider">Xero</th>
+              <th className="text-left px-6 py-3 text-xs font-medium text-slate-500 uppercase tracking-wider">Accounting</th>
               <th className="text-right px-6 py-3 text-xs font-medium text-slate-500 uppercase tracking-wider">Invoices</th>
               <th className="text-right px-6 py-3 text-xs font-medium text-slate-500 uppercase tracking-wider">Exceptions</th>
               <th className="px-6 py-3" />
@@ -64,17 +64,26 @@ export default async function ClientsPage() {
                   {client.peppolId ?? <span className="text-slate-300">—</span>}
                 </td>
                 <td className="px-6 py-3.5">
-                  {client.xeroConnected ? (
-                    <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">
-                      Connected
+                  {client.accountingSystem === 'NONE' ? (
+                    <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-medium bg-slate-100 text-slate-500 border border-slate-200">
+                      Not set
+                    </span>
+                  ) : client.accountingSystem === 'XERO' ? (
+                    <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-medium ${client.xeroConnected ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-slate-100 text-slate-600 border border-slate-200'}`}>
+                      Xero {client.xeroConnected ? '✓' : ''}
+                    </span>
+                  ) : client.accountingSystem === 'EXACT_ONLINE' ? (
+                    <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-medium ${client.exactConnected ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-blue-50 text-blue-700 border border-blue-200'}`}>
+                      Exact {client.exactConnected ? '✓' : ''}
+                    </span>
+                  ) : client.accountingSystem === 'DATEV' ? (
+                    <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-medium bg-violet-50 text-violet-700 border border-violet-200">
+                      DATEV
                     </span>
                   ) : (
-                    <Link
-                      href={`/api/xero/connect?clientId=${client.id}`}
-                      className="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-medium bg-slate-100 text-slate-600 border border-slate-200 hover:bg-slate-200 transition-colors"
-                    >
-                      Connect
-                    </Link>
+                    <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-medium bg-slate-100 text-slate-500 border border-slate-200">
+                      {client.accountingSystem}
+                    </span>
                   )}
                 </td>
                 <td className="px-6 py-3.5 text-right text-slate-700 tabular-nums">{client._count.invoices}</td>

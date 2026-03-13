@@ -71,16 +71,54 @@ export default async function ClientDetailPage({
           )}
         </div>
         <div className="flex items-center gap-3">
-          {client.xeroConnected ? (
-            <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">
-              Xero Connected
-            </span>
-          ) : (
+          {/* Accounting system badge + actions */}
+          {client.accountingSystem === 'XERO' && (
+            client.xeroConnected ? (
+              <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">
+                Xero Connected
+              </span>
+            ) : (
+              <Link
+                href={`/api/xero/connect?clientId=${client.id}`}
+                className="px-4 py-2 bg-slate-900 text-white text-xs font-medium rounded-lg hover:bg-slate-800 transition-colors"
+              >
+                Connect Xero
+              </Link>
+            )
+          )}
+          {client.accountingSystem === 'EXACT_ONLINE' && (
+            client.exactConnected ? (
+              <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">
+                Exact Online Connected
+              </span>
+            ) : (
+              <Link
+                href={`/api/exact-online/connect?clientId=${client.id}`}
+                className="px-4 py-2 bg-blue-600 text-white text-xs font-medium rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                Connect Exact Online
+              </Link>
+            )
+          )}
+          {client.accountingSystem === 'DATEV' && (
+            <>
+              <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium bg-violet-50 text-violet-700 border border-violet-200">
+                DATEV {client.datevConsultNo ? `(${client.datevConsultNo}/${client.datevClientNo})` : ''}
+              </span>
+              <Link
+                href={`/api/export/datev?clientId=${client.id}`}
+                className="px-4 py-2 bg-violet-600 text-white text-xs font-medium rounded-lg hover:bg-violet-700 transition-colors"
+              >
+                Export Buchungsstapel
+              </Link>
+            </>
+          )}
+          {client.accountingSystem === 'NONE' && (
             <Link
-              href={`/api/xero/connect?clientId=${client.id}`}
+              href="/dashboard/clients/onboard"
               className="px-4 py-2 bg-slate-900 text-white text-xs font-medium rounded-lg hover:bg-slate-800 transition-colors"
             >
-              Connect Xero
+              Set Up Accounting
             </Link>
           )}
         </div>

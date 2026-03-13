@@ -4,13 +4,46 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 
-type Step = 'details' | 'xero' | 'rules' | 'done'
+type Step = 'details' | 'accounting' | 'rules' | 'done'
 
 const STEPS: { key: Step; label: string; number: number }[] = [
   { key: 'details', label: 'Client Details', number: 1 },
-  { key: 'xero', label: 'Connect Xero', number: 2 },
+  { key: 'accounting', label: 'Accounting System', number: 2 },
   { key: 'rules', label: 'Set Up Rules', number: 3 },
   { key: 'done', label: 'Ready', number: 4 },
+]
+
+type AccountingSystem = 'NONE' | 'XERO' | 'EXACT_ONLINE' | 'DATEV'
+
+const ACCOUNTING_OPTIONS: { key: AccountingSystem; name: string; description: string; flag: string; regions: string }[] = [
+  {
+    key: 'EXACT_ONLINE',
+    name: 'Exact Online',
+    description: 'Connect via OAuth. Auto-post bills directly.',
+    flag: '🇳🇱🇧🇪',
+    regions: 'Netherlands, Belgium, Germany',
+  },
+  {
+    key: 'DATEV',
+    name: 'DATEV',
+    description: 'Export Buchungsstapel CSV. Import into DATEV.',
+    flag: '🇩🇪',
+    regions: 'Germany',
+  },
+  {
+    key: 'XERO',
+    name: 'Xero',
+    description: 'Connect via OAuth. Auto-post bills directly.',
+    flag: '🇬🇧🇦🇺',
+    regions: 'UK, Australia, New Zealand',
+  },
+  {
+    key: 'NONE',
+    name: 'Other / Not yet',
+    description: 'Invoices will be parsed and categorised. You can export or connect later.',
+    flag: '🌍',
+    regions: 'All countries',
+  },
 ]
 
 interface RuleEntry {
@@ -29,6 +62,13 @@ export default function OnboardPage() {
   const [vatNumber, setVatNumber] = useState('')
   const [saving, setSaving] = useState(false)
   const [clientId, setClientId] = useState<string | null>(null)
+
+  // Step 2: Accounting system
+  const [selectedSystem, setSelectedSystem] = useState<AccountingSystem | null>(null)
+  const [datevConsultNo, setDatevConsultNo] = useState('')
+  const [datevClientNo, setDatevClientNo] = useState('')
+  const [exactRegion, setExactRegion] = useState<'NL' | 'BE' | 'DE' | 'UK'>('NL')
+  const [connectingSystem, setConnectingSystem] = useState(false)
 
   // Step 3: Rules
   const [rules, setRules] = useState<RuleEntry[]>([
@@ -65,7 +105,7 @@ export default function OnboardPage() {
 
       const client = await res.json()
       setClientId(client.id)
-      setStep('xero')
+      setStep('accounting')
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Something went wrong')
     } finally {
@@ -73,15 +113,56 @@ export default function OnboardPage() {
     }
   }
 
-  // ── STEP 2: Xero connect ──────────────────────────────────────────────────
+  // ── STEP 2: Connect accounting system ────────────────────────────────────
 
-  function handleConnectXero() {
-    if (!clientId) return
-    // Open Xero OAuth in same window — callback will redirect back
-    window.location.href = `/api/xero/connect?clientId=${clientId}`
+  async function handleConnectSystem() {
+    if (!clientId || !selectedSystem) return
+    setConnectingSystem(true)
+    setError(null)
+
+    try {
+      if (selectedSystem === 'XERO') {
+        window.location.href = `/api/xero/connect?clientId=${clientId}`
+        return
+      }
+
+      if (selectedSystem === 'EXACT_ONLINE') {
+        window.location.href = `/api/exact-online/connect?clientId=${clientId}&region=${exactRegion}`
+        return
+      }
+
+      if (selectedSystem === 'DATEV') {
+        // DATEV doesn't need OAuth — just save the config
+        const res = await fetch(`/api/clients/${clientId}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            accountingSystem: 'DATEV',
+            datevConsultNo: datevConsultNo.trim() || undefined,
+            datevClientNo: datevClientNo.trim() || undefined,
+          }),
+        })
+
+        if (!res.ok) throw new Error('Failed to save DATEV config')
+        setStep('rules')
+        return
+      }
+
+      // NONE — just update and move on
+      await fetch(`/api/clients/${clientId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ accountingSystem: 'NONE' }),
+      })
+      setStep('rules')
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Connection failed')
+    } finally {
+      setConnectingSystem(false)
+    }
   }
 
-  function handleSkipXero() {
+  function handleSkipAccounting() {
     setStep('rules')
   }
 
@@ -140,6 +221,25 @@ export default function OnboardPage() {
   function handleSkipRules() {
     setStep('done')
   }
+
+  // Get account code examples based on selected system
+  const accountCodeExamples = selectedSystem === 'DATEV'
+    ? [
+        ['4940', 'Fachliteratur (books/publications)'],
+        ['4930', 'Bürobedarf (office supplies)'],
+        ['3400', 'Wareneingang (goods received)'],
+        ['4210', 'Miete (rent)'],
+        ['4520', 'Kfz-Kosten (vehicle costs)'],
+        ['4910', 'Porto (postage)'],
+      ]
+    : [
+        ['429', 'Software / IT'],
+        ['600', 'Consulting'],
+        ['310', 'Office Supplies'],
+        ['445', 'Rent'],
+        ['461', 'Insurance'],
+        ['200', 'Purchases'],
+      ]
 
   return (
     <div className="p-8 max-w-2xl mx-auto">
@@ -233,7 +333,7 @@ export default function OnboardPage() {
                 className="w-full px-3 py-2.5 bg-white text-slate-900 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-slate-900 focus:border-transparent placeholder:text-slate-400"
                 placeholder="e.g. 0106:12345678"
               />
-              <p className="mt-1.5 text-xs text-slate-400">Needed to receive e-invoices via Peppol</p>
+              <p className="mt-1.5 text-xs text-slate-400">Optional — needed for Peppol e-invoice reception</p>
             </div>
 
             <div>
@@ -263,39 +363,116 @@ export default function OnboardPage() {
         </div>
       )}
 
-      {/* ── STEP 2: CONNECT XERO ────────────────────────────────────────────── */}
-      {step === 'xero' && (
-        <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-8 text-center">
-          <div className="w-16 h-16 bg-blue-50 rounded-2xl flex items-center justify-center mx-auto mb-5">
-            <span className="text-3xl">&#127760;</span>
-          </div>
-          <h2 className="text-xl font-semibold text-slate-900 mb-2">Connect to Xero</h2>
-          <p className="text-sm text-slate-500 mb-8 max-w-sm mx-auto">
-            Link {clientName}&apos;s Xero account so Morway can automatically post approved invoices as bills.
+      {/* ── STEP 2: ACCOUNTING SYSTEM ─────────────────────────────────────────── */}
+      {step === 'accounting' && (
+        <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-8">
+          <h2 className="text-xl font-semibold text-slate-900 mb-1">Connect accounting system</h2>
+          <p className="text-sm text-slate-500 mb-6">
+            Which system does {clientName} use? This tells Morway where to post approved invoices.
           </p>
 
-          <div className="space-y-3">
-            <button
-              onClick={handleConnectXero}
-              className="w-full max-w-xs mx-auto px-6 py-3 bg-slate-900 text-white text-sm font-medium rounded-lg hover:bg-slate-800 transition-colors block"
-            >
-              Connect Xero Account
-            </button>
-            <button
-              onClick={handleSkipXero}
-              className="text-sm text-slate-400 hover:text-slate-600 transition-colors"
-            >
-              Skip for now — I&apos;ll connect later
-            </button>
+          <div className="space-y-3 mb-6">
+            {ACCOUNTING_OPTIONS.map((option) => (
+              <button
+                key={option.key}
+                onClick={() => setSelectedSystem(option.key)}
+                className={`w-full text-left p-4 rounded-lg border-2 transition-all ${
+                  selectedSystem === option.key
+                    ? 'border-slate-900 bg-slate-50'
+                    : 'border-slate-200 hover:border-slate-300'
+                }`}
+              >
+                <div className="flex items-start justify-between">
+                  <div>
+                    <p className="text-sm font-semibold text-slate-900">{option.name}</p>
+                    <p className="text-xs text-slate-500 mt-0.5">{option.description}</p>
+                    <p className="text-[11px] text-slate-400 mt-1">{option.flag} {option.regions}</p>
+                  </div>
+                  <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 mt-0.5 ${
+                    selectedSystem === option.key
+                      ? 'border-slate-900'
+                      : 'border-slate-300'
+                  }`}>
+                    {selectedSystem === option.key && (
+                      <div className="w-2.5 h-2.5 rounded-full bg-slate-900" />
+                    )}
+                  </div>
+                </div>
+              </button>
+            ))}
           </div>
 
-          <div className="mt-8 p-4 bg-slate-50 rounded-xl text-left">
-            <p className="text-xs font-medium text-slate-500 mb-2">What happens when you connect:</p>
-            <div className="space-y-1.5 text-xs text-slate-500">
-              <p>1. You&apos;ll be redirected to Xero to authorise access</p>
-              <p>2. Morway gets permission to create bills and contacts</p>
-              <p>3. Auto-posting becomes available for this client</p>
+          {/* DATEV config fields */}
+          {selectedSystem === 'DATEV' && (
+            <div className="mb-6 p-4 bg-slate-50 rounded-xl space-y-4">
+              <p className="text-xs font-medium text-slate-500">DATEV Configuration (optional — can be set later)</p>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs text-slate-500 mb-1">Beraternummer (Consultant No.)</label>
+                  <input
+                    type="text"
+                    value={datevConsultNo}
+                    onChange={(e) => setDatevConsultNo(e.target.value)}
+                    className="w-full px-3 py-2 bg-white text-slate-900 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-slate-900 focus:border-transparent placeholder:text-slate-400"
+                    placeholder="e.g. 1001"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs text-slate-500 mb-1">Mandantennummer (Client No.)</label>
+                  <input
+                    type="text"
+                    value={datevClientNo}
+                    onChange={(e) => setDatevClientNo(e.target.value)}
+                    className="w-full px-3 py-2 bg-white text-slate-900 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-slate-900 focus:border-transparent placeholder:text-slate-400"
+                    placeholder="e.g. 456"
+                  />
+                </div>
+              </div>
             </div>
+          )}
+
+          {/* Exact Online region selector */}
+          {selectedSystem === 'EXACT_ONLINE' && (
+            <div className="mb-6 p-4 bg-slate-50 rounded-xl">
+              <p className="text-xs font-medium text-slate-500 mb-3">Select your Exact Online region</p>
+              <div className="flex gap-2">
+                {(['NL', 'BE', 'DE', 'UK'] as const).map((region) => (
+                  <button
+                    key={region}
+                    onClick={() => setExactRegion(region)}
+                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                      exactRegion === region
+                        ? 'bg-slate-900 text-white'
+                        : 'bg-white border border-slate-300 text-slate-700 hover:border-slate-400'
+                    }`}
+                  >
+                    {region}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <div className="flex items-center gap-3">
+            <button
+              onClick={handleConnectSystem}
+              disabled={!selectedSystem || connectingSystem}
+              className="px-6 py-2.5 bg-slate-900 text-white text-sm font-medium rounded-lg hover:bg-slate-800 transition-colors disabled:opacity-50"
+            >
+              {connectingSystem
+                ? 'Connecting...'
+                : selectedSystem === 'XERO' || selectedSystem === 'EXACT_ONLINE'
+                ? `Connect ${selectedSystem === 'XERO' ? 'Xero' : 'Exact Online'}`
+                : selectedSystem === 'DATEV'
+                ? 'Save DATEV Config'
+                : 'Continue'}
+            </button>
+            <button
+              onClick={handleSkipAccounting}
+              className="text-sm text-slate-400 hover:text-slate-600 transition-colors"
+            >
+              Skip for now
+            </button>
           </div>
         </div>
       )}
@@ -316,7 +493,7 @@ export default function OnboardPage() {
                     type="text"
                     value={rule.keyword}
                     onChange={(e) => updateRule(index, 'keyword', e.target.value)}
-                    placeholder="Keyword (e.g. software)"
+                    placeholder="Keyword (e.g. fertiliser)"
                     className="w-full px-3 py-2 bg-white text-slate-900 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-slate-900 focus:border-transparent placeholder:text-slate-400"
                   />
                 </div>
@@ -326,7 +503,7 @@ export default function OnboardPage() {
                     type="text"
                     value={rule.accountCode}
                     onChange={(e) => updateRule(index, 'accountCode', e.target.value)}
-                    placeholder="Code (e.g. 429)"
+                    placeholder={selectedSystem === 'DATEV' ? 'e.g. 4940' : 'e.g. 429'}
                     className="w-full px-3 py-2 bg-white text-slate-900 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-slate-900 focus:border-transparent placeholder:text-slate-400"
                   />
                 </div>
@@ -366,14 +543,13 @@ export default function OnboardPage() {
           </div>
 
           <div className="mt-8 p-4 bg-slate-50 rounded-xl">
-            <p className="text-xs font-medium text-slate-500 mb-2">Common account codes:</p>
+            <p className="text-xs font-medium text-slate-500 mb-2">
+              {selectedSystem === 'DATEV' ? 'Common DATEV account codes (SKR03):' : 'Common account codes:'}
+            </p>
             <div className="grid grid-cols-2 gap-1 text-xs text-slate-500">
-              <span>429 — Software / IT</span>
-              <span>600 — Consulting</span>
-              <span>310 — Office Supplies</span>
-              <span>445 — Rent</span>
-              <span>461 — Insurance</span>
-              <span>200 — Purchases</span>
+              {accountCodeExamples.map(([code, label]) => (
+                <span key={code}>{code} — {label}</span>
+              ))}
             </div>
           </div>
         </div>
@@ -392,7 +568,10 @@ export default function OnboardPage() {
           </h2>
           <p className="text-sm text-slate-500 mb-2 max-w-sm mx-auto">
             Client created{rulesCreated > 0 ? ` with ${rulesCreated} categorisation rule${rulesCreated !== 1 ? 's' : ''}` : ''}.
-            Incoming Peppol invoices will now be processed automatically.
+            {selectedSystem === 'DATEV' && ' DATEV export will be available once invoices are processed.'}
+            {selectedSystem === 'EXACT_ONLINE' && ' Approved invoices will auto-post to Exact Online.'}
+            {selectedSystem === 'XERO' && ' Approved invoices will auto-post to Xero.'}
+            {(!selectedSystem || selectedSystem === 'NONE') && ' Connect an accounting system later to enable auto-posting.'}
           </p>
 
           <div className="mt-8 space-y-3">
@@ -403,7 +582,18 @@ export default function OnboardPage() {
               View Client
             </button>
             <button
-              onClick={() => router.push('/dashboard/clients/onboard')}
+              onClick={() => {
+                // Reset state for new onboarding
+                setStep('details')
+                setClientName('')
+                setPeppolId('')
+                setVatNumber('')
+                setClientId(null)
+                setSelectedSystem(null)
+                setRules([{ keyword: '', accountCode: '' }])
+                setRulesCreated(0)
+                setError(null)
+              }}
               className="text-sm text-slate-500 hover:text-slate-900 transition-colors block mx-auto"
             >
               + Onboard another client
@@ -413,9 +603,12 @@ export default function OnboardPage() {
           <div className="mt-8 p-4 bg-slate-50 rounded-xl text-left">
             <p className="text-xs font-medium text-slate-500 mb-2">Next steps:</p>
             <div className="space-y-1.5 text-xs text-slate-500">
-              <p>1. Share the client&apos;s Peppol ID with their suppliers</p>
+              <p>1. Forward supplier invoices to the client&apos;s dedicated email address</p>
               <p>2. Add more categorisation rules as invoices come in</p>
               <p>3. Review any exceptions that land in the queue</p>
+              {selectedSystem === 'DATEV' && (
+                <p>4. Download DATEV export from the client dashboard when ready</p>
+              )}
             </div>
           </div>
         </div>

@@ -45,17 +45,23 @@ model User {
 
 // ─── CLIENT ──────────────────────────────────────────────────────────────────
 // An SME client managed by a firm
+// accountingSystem: XERO | EXACT_ONLINE | DATEV | NONE
 model Client {
-  id            String   @id @default(uuid())
-  firmId        String
-  name          String
-  vatNumber     String?
-  peppolId      String?  @unique
-  xeroTenantId  String?  @unique
-  xeroConnected Boolean  @default(false)
-  active        Boolean  @default(true)
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  id               String   @id @default(uuid())
+  firmId           String
+  name             String
+  vatNumber        String?
+  peppolId         String?  @unique
+  accountingSystem String   @default("NONE")
+  xeroTenantId     String?  @unique
+  xeroConnected    Boolean  @default(false)
+  exactDivision    String?
+  exactConnected   Boolean  @default(false)
+  datevClientNo    String?
+  datevConsultNo   String?
+  active           Boolean  @default(true)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
 
   firm      Firm       @relation(fields: [firmId], references: [id], onDelete: Cascade)
   invoices  Invoice[]
@@ -98,6 +104,7 @@ model Invoice {
   status          String    @default("PENDING")
   confidenceScore Float     @default(0)
   xeroInvoiceId   String?
+  externalRef     String?
   failureReason   String?
   receivedAt      DateTime  @default(now())
   processedAt     DateTime?
@@ -206,4 +213,17 @@ model XeroToken {
   updatedAt    DateTime @updatedAt
 
   @@map("xero_tokens")
+}
+
+// ─── EXACT ONLINE TOKEN ─────────────────────────────────────────────────────
+model ExactOnlineToken {
+  id           String   @id @default(uuid())
+  clientId     String   @unique
+  division     String
+  accessToken  String
+  refreshToken String
+  expiresAt    DateTime
+  updatedAt    DateTime @updatedAt
+
+  @@map("exact_online_tokens")
 }

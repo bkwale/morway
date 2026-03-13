@@ -35,6 +35,26 @@ export const PLAN = {
   SCALE: 'SCALE',
 } as const
 
+// Accounting systems
+export const ACCOUNTING_SYSTEM = {
+  NONE: 'NONE',
+  XERO: 'XERO',
+  EXACT_ONLINE: 'EXACT_ONLINE',
+  DATEV: 'DATEV',
+} as const
+
+export type AccountingSystem = (typeof ACCOUNTING_SYSTEM)[keyof typeof ACCOUNTING_SYSTEM]
+
+// Exact Online regional endpoints
+export const EXACT_ONLINE_REGIONS = {
+  NL: { auth: 'https://start.exactonline.nl', label: 'Netherlands' },
+  BE: { auth: 'https://start.exactonline.be', label: 'Belgium' },
+  DE: { auth: 'https://start.exactonline.de', label: 'Germany' },
+  UK: { auth: 'https://start.exactonline.co.uk', label: 'United Kingdom' },
+} as const
+
+export type ExactOnlineRegion = keyof typeof EXACT_ONLINE_REGIONS
+
 // Confidence threshold for auto-posting
 export const AUTO_POST_THRESHOLD = parseFloat(
   process.env.AUTO_POST_CONFIDENCE_THRESHOLD ?? '0.8'

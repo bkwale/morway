@@ -1,19 +1,18 @@
 import { db } from './db'
 import { parseUBLInvoice } from './ubl-parser'
 import { applyRules } from './rules-engine'
-import { findOrCreateContact, postBillToXero } from './xero'
+import { getAdapter } from './accounting'
 import { INVOICE_STATUS, AUDIT_ACTION, AUTO_POST_THRESHOLD } from './constants'
 import { notifyExceptionCreated } from './notifications'
 
 /**
  * Extract a useful error message from any thrown value.
- * Xero SDK often throws plain objects, not Error instances.
+ * Accounting SDKs often throw plain objects, not Error instances.
  */
 function extractErrorMessage(err: unknown): string {
   if (err instanceof Error) return err.message
   if (typeof err === 'string') return err
   if (err && typeof err === 'object') {
-    // Xero SDK error shape
     const obj = err as Record<string, unknown>
     if (obj.body && typeof obj.body === 'object') {
       const body = obj.body as Record<string, unknown>
@@ -21,11 +20,11 @@ function extractErrorMessage(err: unknown): string {
       if (body.Detail) return String(body.Detail)
       if (body.message) return String(body.message)
     }
-    if (obj.statusCode) return `Xero API error: HTTP ${obj.statusCode}`
+    if (obj.statusCode) return `API error: HTTP ${obj.statusCode}`
     if (obj.message) return String(obj.message)
     try { return JSON.stringify(err).slice(0, 300) } catch { /* fallthrough */ }
   }
-  return 'Unknown error — check Xero connection and tokens'
+  return 'Unknown error — check accounting system connection'
 }
 
 /**
@@ -148,29 +147,30 @@ export async function processInvoice(invoiceId: string): Promise<void> {
 
     // ── STEP 4: Auto-post or send to exception queue ──────────────────────
     if (rulesResult.overallConfidence >= AUTO_POST_THRESHOLD) {
-      // Check Xero is connected before trying to auto-post
-      const xeroToken = await db.xeroToken.findUnique({ where: { clientId: invoice.clientId } })
+      // Get the accounting adapter for this client
+      const adapter = await getAdapter(invoice.clientId)
 
-      if (!xeroToken) {
+      if (!adapter) {
         await sendToException(
           invoiceId,
-          `Xero not connected for client "${invoice.client.name}". Rules matched (${Math.round(rulesResult.overallConfidence * 100)}% confidence) but cannot auto-post without Xero.`
+          `No accounting system connected for client "${invoice.client.name}". Rules matched (${Math.round(rulesResult.overallConfidence * 100)}% confidence) but cannot auto-post without a connected system.`
         )
         return
       }
 
-      // Check token isn't severely expired (>24h past expiry = likely needs re-auth)
-      const tokenExpiry = new Date(xeroToken.expiresAt)
-      const dayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000)
-      if (tokenExpiry < dayAgo) {
-        await sendToException(
-          invoiceId,
-          `Xero access token expired for client "${invoice.client.name}". Please reconnect Xero to resume auto-posting.`
-        )
-        return
+      // Check connection is still valid (for real-time adapters)
+      if (adapter.isRealTime) {
+        const connected = await adapter.isConnected(invoice.clientId)
+        if (!connected) {
+          await sendToException(
+            invoiceId,
+            `${adapter.name} connection expired for client "${invoice.client.name}". Please reconnect to resume auto-posting.`
+          )
+          return
+        }
       }
 
-      await autoPost(invoiceId, invoice.clientId, supplier, parsed, rulesResult)
+      await autoPost(invoiceId, invoice.clientId, supplier, parsed, rulesResult, adapter)
     } else {
       const reason =
         rulesResult.unmatched > 0
@@ -197,31 +197,39 @@ async function autoPost(
   clientId: string,
   supplier: { name: string; vatNumber: string | null; xeroContactId: string | null },
   parsed: ReturnType<typeof parseUBLInvoice> extends Promise<infer T> ? T : ReturnType<typeof parseUBLInvoice>,
-  rulesResult: Awaited<ReturnType<typeof applyRules>>
+  rulesResult: Awaited<ReturnType<typeof applyRules>>,
+  adapter: Awaited<ReturnType<typeof getAdapter>>
 ) {
-  // Get or create Xero contact
-  const xeroContact = await findOrCreateContact(clientId, {
+  if (!adapter) {
+    await sendToException(invoiceId, 'No accounting adapter available')
+    return
+  }
+
+  // Find or create contact in external system
+  const contact = await adapter.findOrCreateContact(clientId, {
     name: supplier.name,
     vatNumber: supplier.vatNumber,
   })
 
-  if (!xeroContact?.contactID) {
-    await sendToException(invoiceId, 'Could not create or find Xero contact')
+  if (!contact?.contactId) {
+    await sendToException(invoiceId, `Could not create or find contact in ${adapter.name}`)
     return
   }
 
-  // Update supplier with Xero contact ID
+  // Update supplier with external contact ID
   await db.supplier.updateMany({
     where: { clientId, name: supplier.name },
-    data: { xeroContactId: xeroContact.contactID },
+    data: { xeroContactId: contact.contactId },
   })
 
-  // Post bill to Xero
-  const xeroBill = await postBillToXero(clientId, xeroContact.contactID, {
+  // Post bill via adapter
+  const result = await adapter.postBill(clientId, contact.contactId, {
     invoiceNumber: parsed.invoiceNumber,
     invoiceDate: parsed.invoiceDate,
     dueDate: parsed.dueDate,
     currency: parsed.currency,
+    supplierName: supplier.name,
+    supplierVatNumber: supplier.vatNumber,
     lineItems: rulesResult.lineItems
       .filter((item) => item.accountCode)
       .map((item) => ({
@@ -232,8 +240,8 @@ async function autoPost(
       })),
   })
 
-  if (!xeroBill?.invoiceID) {
-    await sendToException(invoiceId, 'Xero bill creation failed — no invoice ID returned')
+  if (!result.success && adapter.isRealTime) {
+    await sendToException(invoiceId, `${adapter.name} posting failed: ${result.error ?? 'unknown error'}`)
     return
   }
 
@@ -241,14 +249,16 @@ async function autoPost(
     where: { id: invoiceId },
     data: {
       status: INVOICE_STATUS.AUTO_POSTED,
-      xeroInvoiceId: xeroBill.invoiceID,
+      xeroInvoiceId: result.externalId,
+      externalRef: result.externalRef,
       postedAt: new Date(),
     },
   })
 
   await createAuditLog(invoiceId, AUDIT_ACTION.AUTO_POSTED, {
-    xeroInvoiceId: xeroBill.invoiceID,
-    xeroContactId: xeroContact.contactID,
+    system: adapter.name,
+    externalId: result.externalId,
+    contactId: contact.contactId,
   })
 }
 
