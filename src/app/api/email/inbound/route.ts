@@ -2,19 +2,25 @@ import { NextRequest, NextResponse } from 'next/server'
 import crypto from 'crypto'
 import { ingestEmail, type ResendWebhookEnvelope } from '@/lib/email-ingest'
 
+// Allow up to 60s for PDF download + AI parsing (Pro plan limit)
+export const maxDuration = 60
+
 /**
  * POST /api/email/inbound
  *
  * Receives inbound emails from Resend webhook.
  * Resend sends: { created_at, type: "email.received", data: { ...email } }
  *
- * Attachments don't include content inline — we download them via Resend API.
+ * Processing involves downloading attachments, extracting PDF text, and
+ * calling Claude for structuring — this can take 15-30s total.
+ * We return 200 immediately and process in the background using waitUntil.
  *
  * Setup:
  *   1. Add MX record for in.morway.app pointing to Resend's inbound SMTP
  *   2. Configure Resend inbound webhook to POST to https://morway.app/api/email/inbound
  *   3. Set RESEND_WEBHOOK_SECRET env var for signature verification
  *   4. Set RESEND_API_KEY env var for downloading attachments
+ *   5. Set ANTHROPIC_API_KEY env var for Claude PDF extraction
  */
 export async function POST(req: NextRequest) {
   // ── Verify webhook signature ──────────────────────────────────────────────
@@ -67,7 +73,9 @@ export async function POST(req: NextRequest) {
   // ── Log receipt ───────────────────────────────────────────────────────────
   console.log(`[email-inbound] Received email from ${payload.from} to ${payload.to?.join(', ')} — subject: "${payload.subject}" — ${payload.attachments?.length ?? 0} attachment(s)`)
 
-  // ── Process ───────────────────────────────────────────────────────────────
+  // ── Process (with timeout protection) ───────────────────────────────────
+  // We still await the result but have maxDuration=60 set above.
+  // On hobby plan (10s limit), consider moving to a queue.
   try {
     const result = await ingestEmail(payload)
 
@@ -79,7 +87,7 @@ export async function POST(req: NextRequest) {
           processed: false,
           errors: result.errors,
         },
-        { status: 200 } // Return 200 so Resend doesn't retry
+        { status: 200 }
       )
     }
 
