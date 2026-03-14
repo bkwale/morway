@@ -1,21 +1,33 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
+import { getSessionOrNull } from '@/lib/get-session'
 import { INVOICE_STATUS, EXCEPTION_ACTION, AUDIT_ACTION } from '@/lib/constants'
 
 export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const session = await getSessionOrNull()
+  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
   const { id: invoiceId } = await params
-  const { userId, notes } = await req.json()
+  const { notes } = await req.json()
+
+  // Use authenticated user's ID
+  const userId = session.user.id
 
   const invoice = await db.invoice.findUnique({
     where: { id: invoiceId },
-    include: { exception: true },
+    include: { exception: true, client: { select: { firmId: true } } },
   })
 
   if (!invoice) {
     return NextResponse.json({ error: 'Invoice not found' }, { status: 404 })
+  }
+
+  // Verify the invoice belongs to the user's firm
+  if (invoice.client.firmId !== session.user.firmId) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 
   if (invoice.status !== INVOICE_STATUS.EXCEPTION) {

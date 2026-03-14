@@ -1,9 +1,8 @@
 import { db } from '@/lib/db'
+import { requireSession } from '@/lib/get-session'
 import Link from 'next/link'
 
 export const dynamic = 'force-dynamic'
-
-const FIRM_ID = process.env.DEV_FIRM_ID ?? ''
 
 async function getClients(firmId: string) {
   return db.client.findMany({
@@ -50,7 +49,8 @@ function getAccountingBadge(client: {
 }
 
 export default async function ClientsPage() {
-  const clients = await getClients(FIRM_ID)
+  const session = await requireSession()
+  const clients = await getClients(session.user.firmId)
 
   const totalExceptions = clients.reduce((sum, c) => sum + c.invoices.length, 0)
 

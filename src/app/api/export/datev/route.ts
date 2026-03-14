@@ -1,4 +1,6 @@
 import { generateDatevExport } from '@/lib/accounting/datev'
+import { db } from '@/lib/db'
+import { getSessionOrNull } from '@/lib/get-session'
 import { NextResponse } from 'next/server'
 
 /**
@@ -11,11 +13,22 @@ import { NextResponse } from 'next/server'
  *   - clientNumber: DATEV Mandantennummer (defaults to client setting)
  */
 export async function GET(request: Request) {
+  const session = await getSessionOrNull()
+  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
   const { searchParams } = new URL(request.url)
   const clientId = searchParams.get('clientId')
 
   if (!clientId) {
     return NextResponse.json({ error: 'clientId is required' }, { status: 400 })
+  }
+
+  // Verify client belongs to user's firm
+  const client = await db.client.findFirst({
+    where: { id: clientId, firmId: session.user.firmId },
+  })
+  if (!client) {
+    return NextResponse.json({ error: 'Client not found' }, { status: 404 })
   }
 
   const invoiceIdsParam = searchParams.get('invoiceIds')

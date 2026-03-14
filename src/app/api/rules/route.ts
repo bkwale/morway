@@ -1,15 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
+import { getSessionOrNull } from '@/lib/get-session'
 
 /**
- * GET /api/rules?firmId=xxx&clientId=xxx
- * List rules for a firm, optionally filtered by client.
+ * GET /api/rules?clientId=xxx
+ * List rules for the authenticated user's firm, optionally filtered by client.
  */
 export async function GET(req: NextRequest) {
-  const firmId = req.nextUrl.searchParams.get('firmId') || process.env.DEV_FIRM_ID
-  const clientId = req.nextUrl.searchParams.get('clientId')
+  const session = await getSessionOrNull()
+  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  if (!firmId) return NextResponse.json({ error: 'Missing firmId' }, { status: 400 })
+  const firmId = session.user.firmId
+  const clientId = req.nextUrl.searchParams.get('clientId')
 
   const rules = await db.rule.findMany({
     where: {
@@ -24,15 +26,18 @@ export async function GET(req: NextRequest) {
 
 /**
  * POST /api/rules
- * Create a new categorisation rule.
+ * Create a new categorisation rule for the authenticated user's firm.
  */
 export async function POST(req: NextRequest) {
+  const session = await getSessionOrNull()
+  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+  const firmId = session.user.firmId
   const body = await req.json()
-  const firmId = body.firmId ?? process.env.DEV_FIRM_ID ?? ''
   const { clientId, supplierId, keyword, accountCode, vatRate, priority } = body
 
-  if (!firmId || !accountCode) {
-    return NextResponse.json({ error: 'firmId and accountCode are required' }, { status: 400 })
+  if (!accountCode) {
+    return NextResponse.json({ error: 'accountCode is required' }, { status: 400 })
   }
 
   const rule = await db.rule.create({
@@ -52,13 +57,20 @@ export async function POST(req: NextRequest) {
 
 /**
  * PATCH /api/rules
- * Update a rule.
+ * Update a rule (only if it belongs to the user's firm).
  */
 export async function PATCH(req: NextRequest) {
+  const session = await getSessionOrNull()
+  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
   const body = await req.json()
   const { id, ...updates } = body
 
   if (!id) return NextResponse.json({ error: 'Missing rule id' }, { status: 400 })
+
+  // Verify the rule belongs to the user's firm
+  const existing = await db.rule.findFirst({ where: { id, firmId: session.user.firmId } })
+  if (!existing) return NextResponse.json({ error: 'Rule not found' }, { status: 404 })
 
   const rule = await db.rule.update({
     where: { id },
@@ -70,13 +82,20 @@ export async function PATCH(req: NextRequest) {
 
 /**
  * DELETE /api/rules
- * Delete a rule by id (sent in body).
+ * Delete a rule (only if it belongs to the user's firm).
  */
 export async function DELETE(req: NextRequest) {
+  const session = await getSessionOrNull()
+  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
   const body = await req.json()
   const id = body.id
 
   if (!id) return NextResponse.json({ error: 'Missing id' }, { status: 400 })
+
+  // Verify the rule belongs to the user's firm
+  const existing = await db.rule.findFirst({ where: { id, firmId: session.user.firmId } })
+  if (!existing) return NextResponse.json({ error: 'Rule not found' }, { status: 404 })
 
   await db.rule.delete({ where: { id } })
 

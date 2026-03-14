@@ -1,20 +1,24 @@
 import { db } from '@/lib/db'
+import { requireSession } from '@/lib/get-session'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 
 export const dynamic = 'force-dynamic'
 
-async function getInvoice(id: string) {
-  return db.invoice.findUnique({
+async function getInvoice(id: string, firmId: string) {
+  const invoice = await db.invoice.findUnique({
     where: { id },
     include: {
-      client: { select: { id: true, name: true } },
+      client: { select: { id: true, name: true, firmId: true } },
       supplier: { select: { id: true, name: true, vatNumber: true } },
       lineItems: { orderBy: { id: 'asc' } },
       exception: { include: { reviews: { include: { user: { select: { name: true } } } } } },
       auditLogs: { orderBy: { createdAt: 'asc' } },
     },
   })
+  // Scope check: only return if invoice belongs to user's firm
+  if (invoice && invoice.client.firmId !== firmId) return null
+  return invoice
 }
 
 const STATUS_STYLES: Record<string, string> = {
@@ -46,8 +50,9 @@ export default async function InvoiceDetailPage({
 }: {
   params: Promise<{ id: string }>
 }) {
+  const session = await requireSession()
   const { id } = await params
-  const invoice = await getInvoice(id)
+  const invoice = await getInvoice(id, session.user.firmId)
 
   if (!invoice) notFound()
 

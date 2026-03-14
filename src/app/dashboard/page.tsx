@@ -1,9 +1,9 @@
 import { db } from '@/lib/db'
+import { requireSession } from '@/lib/get-session'
 import Link from 'next/link'
 
 export const dynamic = 'force-dynamic'
 
-const FIRM_ID = process.env.DEV_FIRM_ID ?? ''
 const AVG_MINUTES_PER_INVOICE = 5
 
 async function getDashboardData(firmId: string) {
@@ -122,7 +122,8 @@ const ACTION_COLORS: Record<string, string> = {
 }
 
 export default async function DashboardPage() {
-  const d = await getDashboardData(FIRM_ID)
+  const session = await requireSession()
+  const d = await getDashboardData(session.user.firmId)
 
   const queueDepth = d.pending + d.processing
 

@@ -1,13 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
+import { getSessionOrNull } from '@/lib/get-session'
 
 /**
- * GET /api/clients?firmId=xxx
- * List all clients for a firm with invoice stats.
+ * GET /api/clients
+ * List all clients for the authenticated user's firm.
  */
-export async function GET(req: NextRequest) {
-  const firmId = req.nextUrl.searchParams.get('firmId') || process.env.DEV_FIRM_ID
-  if (!firmId) return NextResponse.json({ error: 'Missing firmId' }, { status: 400 })
+export async function GET() {
+  const session = await getSessionOrNull()
+  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+  const firmId = session.user.firmId
 
   const clients = await db.client.findMany({
     where: { firmId, active: true },
@@ -41,15 +44,18 @@ export async function GET(req: NextRequest) {
 
 /**
  * POST /api/clients
- * Create a new client for a firm.
+ * Create a new client for the authenticated user's firm.
  */
 export async function POST(req: NextRequest) {
+  const session = await getSessionOrNull()
+  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+  const firmId = session.user.firmId
   const body = await req.json()
-  const firmId = body.firmId ?? process.env.DEV_FIRM_ID ?? ''
   const { name, vatNumber, peppolId } = body
 
-  if (!firmId || !name) {
-    return NextResponse.json({ error: 'firmId and name are required' }, { status: 400 })
+  if (!name) {
+    return NextResponse.json({ error: 'name is required' }, { status: 400 })
   }
 
   const client = await db.client.create({

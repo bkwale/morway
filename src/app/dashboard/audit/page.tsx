@@ -1,9 +1,8 @@
 import { db } from '@/lib/db'
+import { requireSession } from '@/lib/get-session'
 import Link from 'next/link'
 
 export const dynamic = 'force-dynamic'
-
-const FIRM_ID = process.env.DEV_FIRM_ID ?? ''
 
 const ACTION_STYLES: Record<string, string> = {
   RECEIVED: 'bg-slate-50 text-slate-600 border border-slate-200',
@@ -80,7 +79,8 @@ function timeAgo(date: Date): string {
 }
 
 export default async function AuditPage() {
-  const logs = await getAuditLogs(FIRM_ID)
+  const session = await requireSession()
+  const logs = await getAuditLogs(session.user.firmId)
 
   // Group logs by date
   const grouped: Record<string, typeof logs> = {}

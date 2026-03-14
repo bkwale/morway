@@ -1,12 +1,14 @@
 import { NextResponse } from 'next/server'
 import { db } from '@/lib/db'
-
-const FIRM_ID = process.env.DEV_FIRM_ID ?? ''
+import { getSessionOrNull } from '@/lib/get-session'
 
 export async function GET() {
+  const session = await getSessionOrNull()
+  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
   try {
     const invoices = await db.invoice.findMany({
-      where: { client: { firmId: FIRM_ID } },
+      where: { client: { firmId: session.user.firmId } },
       include: {
         client: { select: { name: true } },
         supplier: { select: { name: true } },

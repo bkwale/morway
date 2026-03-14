@@ -1,9 +1,9 @@
-# Morway — Product Requirements Document v3
+# Morway — Product Requirements Document v4
 
-**Status:** MVP Built · Seeking First Trial Customer
+**Status:** MVP Built · Auth Live · Seeking First Trial Customer
 **Live URL:** morway.app
-**Version:** 3.0
-**Date:** 13 March 2026
+**Version:** 4.0
+**Date:** 14 March 2026
 **Author:** Walt Koleosho
 
 ---
@@ -53,7 +53,7 @@ The accountant or bookkeeper inside the firm who currently spends hours per week
 
 | Channel | Format | Status |
 |---------|--------|--------|
-| **Email forwarding** | PDF, XML, image attachments | **Not built — priority** |
+| **Email forwarding** | PDF, XML, image attachments | **Built** — Resend inbound webhook, multi-format parsing |
 | **Peppol (Storecove)** | UBL 2.1 XML | Built |
 | **Manual upload** | PDF, CSV, image | Not built |
 
@@ -132,16 +132,26 @@ Rules are set once and apply automatically to every future document. The system 
 - Audit trail with colour-coded action log
 - Email notifications for exceptions (via Resend)
 - Landing page
+- **Email ingestion** — Resend inbound webhook, multi-format attachment parsing (PDF, XML, images), email body fallback, forwarded sender extraction
+- **PDF parsing** — Claude AI extraction with multilingual support (DE/FR/NL/IT), line-item-level parsing
+- **Image invoice parsing** — Claude vision API for photographed/scanned invoices (JPEG, PNG, WebP, GIF)
+- **Credit note detection** — UBL root element + InvoiceTypeCode=381, documentType field on all invoices
+- **Duplicate invoice detection** — composite key dedup (invoiceNumber + clientId + currency + grossAmount)
+- **Authentication** — NextAuth.js v5 with email magic link (Resend), session-based auth, firm-scoped data access
+- **Route protection** — Middleware protects all /dashboard and /api routes, only webhooks are public
+- **Firm-scoped data isolation** — Every query, page, and API endpoint scoped to authenticated user's firm. No cross-firm data access.
+- **Login page** — Magic link sign-in, check-email confirmation, error handling for unknown accounts
 
 ### 5.2 Not Built — Critical Path
 
 | Feature | Why It Matters | Priority |
 |---------|---------------|----------|
-| **Email ingestion** | German trial prospect needs to forward invoices by email, not set up Peppol | P0 — blocks trial |
-| **PDF parsing** | Most invoices still arrive as PDF attachments | P0 — blocks trial |
 | **Manual upload UI** | Fallback for invoices that don't arrive by email | P1 |
-| **Credit note handling** | Reversal entries linked to original invoices | P1 |
 | **Rule learning from approvals** | Each exception approval should auto-suggest a new rule | P1 |
+| **Webhook signature validation** | Resend inbound webhook should verify signatures to prevent spoofed invoices | P1 |
+| **Rate limiting** | API and webhook endpoints need rate limiting to prevent abuse | P1 |
+| **Data retention policy** | GDPR requires defined retention periods. Raw invoice data stored indefinitely today. | P1 |
+| **GDPR data export/erasure** | Right to erasure — no way to export or delete a client's data today | P1 |
 | **Bulk exception handling** | Review and approve multiple invoices at once | P2 |
 | **Multi-currency** | EUR, CHF, GBP for cross-border firms | P2 |
 | **Client portal** | Let SME clients see their own invoice status | P3 |
@@ -209,20 +219,19 @@ Rules are set once and apply automatically to every future document. The system 
 | **Hosting** | Vercel (serverless) |
 | **Accounting** | Adapter pattern — DATEV, Exact Online, Xero |
 | **Peppol** | Storecove (webhook) |
-| **Email** | Resend (outbound notifications) |
-| **Email Ingestion** | TBD — Cloudflare Email Workers or Postmark inbound |
-| **PDF Parsing** | TBD — pdf.js + AI extraction |
+| **Email** | Resend (outbound notifications + inbound webhook) |
+| **Email Ingestion** | Resend inbound webhook → parse attachments → process pipeline |
+| **PDF Parsing** | Claude AI extraction (multilingual, line-item-level) |
+| **Image Parsing** | Claude vision API (base64, JPEG/PNG/WebP/GIF) |
+| **Auth** | NextAuth.js v5, email magic link, Prisma adapter, session-based |
 | **XML Parsing** | xmldom + xpath (UBL 2.1) |
 | **Styling** | Tailwind CSS |
 
 ### Data Model
 
-12 core tables: Firm, User, Client, Supplier, Invoice, LineItem, Rule, Exception, ExceptionReview, AuditLog, XeroToken, ExactOnlineToken.
+16 core tables: Firm, User, Client, Supplier, Invoice, LineItem, Rule, Exception, ExceptionReview, AuditLog, XeroToken, ExactOnlineToken, Account, Session, VerificationToken.
 
-**Planned additions:**
-
-- `EmailIngest` — inbound email metadata, attachment tracking, processing status
-- `DocumentSource` enum — EMAIL, PEPPOL, UPLOAD
+Invoice model includes `documentType` (INVOICE / CREDIT_NOTE) and confidence scoring. Auth tables follow NextAuth.js Prisma adapter schema.
 
 ---
 
@@ -260,19 +269,27 @@ Rules are set once and apply automatically to every future document. The system 
 
 ## 10. Roadmap
 
-### Phase 1: Trial-Ready (Now → 2 weeks)
+### Phase 1: Trial-Ready (Now → 1 week)
 
-- [ ] Email ingestion (inbound email → parse attachments → process)
-- [ ] PDF invoice parsing (extract supplier, amounts, line items from PDF)
+- [x] Email ingestion (inbound email → parse attachments → process)
+- [x] PDF invoice parsing (extract supplier, amounts, line items from PDF)
+- [x] Image invoice parsing (photographed invoices via Claude vision)
+- [x] Credit note detection (UBL + InvoiceTypeCode)
+- [x] Duplicate invoice detection
+- [x] Authentication (magic link login, firm-scoped data, route protection)
+- [x] Fix: client creation flow on production
+- [ ] Pre-production environment + end-to-end testing
+- [ ] Webhook signature validation (Resend inbound)
 - [ ] End-to-end test: onboard client → send invoice by email → see it processed → export DATEV
-- [ ] Fix: client creation flow on production
 - [ ] German trial customer onboarded
 
-### Phase 2: Deepen & Expand (Weeks 3–6)
+### Phase 2: Deepen & Expand (Weeks 2–5)
 
-- [ ] Credit note handling (reversal entries)
 - [ ] Manual invoice upload UI
 - [ ] Rule learning from approved exceptions
+- [ ] Rate limiting on API/webhook endpoints
+- [ ] GDPR data retention policy + erasure endpoint
+- [ ] Email notification when invoice is processed
 - [ ] Commission & expense module (validated demand — see appendix)
 
 ### Phase 3: Growth (Months 2–4)
@@ -322,16 +339,18 @@ Rules are set once and apply automatically to every future document. The system 
 
 ---
 
-## 13. What Changed in v3
+## 13. What Changed in v4
 
-| Area | v2 (Old) | v3 (Now) |
+| Area | v3 (Previous) | v4 (Now) |
 |------|----------|----------|
-| **Scope** | Invoice automation (broad) | Invoice automation for EU e-invoicing mandates (focused) |
-| **Ingestion** | Peppol XML only | Email + Peppol + manual upload |
-| **Accounting** | Xero only | DATEV, Exact Online, Xero (adapter pattern) |
-| **Market** | NL/BE accounting firms | DE/NL/BE accounting firms (mandate-driven) |
-| **Scope boundary** | Undefined | Phase 1 = invoices only. Commission/expenses = Phase 2. |
-| **Landing page** | Xero-specific | System-agnostic, highlights email-first ingestion |
+| **Email ingestion** | Not built | Built — Resend inbound webhook, multi-format parsing, forwarded sender extraction |
+| **PDF/Image parsing** | Not built | Built — Claude AI extraction, multilingual, image support via vision API |
+| **Credit notes** | Not built | Built — detection via UBL root element + InvoiceTypeCode |
+| **Duplicate detection** | Not built | Built — composite key dedup (invoiceNumber + clientId + currency + grossAmount) |
+| **Authentication** | No login, no auth, DEV_FIRM_ID env var | NextAuth.js v5 magic link, firm-scoped sessions, middleware protection |
+| **Data isolation** | Single-firm dev mode | Full multi-tenant: every query scoped to authenticated user's firmId |
+| **Approve/reject** | No auth check, userId from request body | Session-authenticated, firmId validation, userId from session |
+| **Security** | No route protection | Middleware on all /dashboard and /api routes. Webhooks exempted. |
 
 ---
 

@@ -1,11 +1,12 @@
 import { db } from '@/lib/db'
+import { requireSession } from '@/lib/get-session'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 
 export const dynamic = 'force-dynamic'
 
-async function getClient(id: string) {
-  return db.client.findUnique({
+async function getClient(id: string, firmId: string) {
+  const client = await db.client.findUnique({
     where: { id },
     include: {
       invoices: {
@@ -29,6 +30,9 @@ async function getClient(id: string) {
       _count: { select: { invoices: true } },
     },
   })
+  // Scope check
+  if (client && client.firmId !== firmId) return null
+  return client
 }
 
 function clientSlug(name: string): string {
@@ -51,8 +55,9 @@ export default async function ClientDetailPage({
 }: {
   params: Promise<{ id: string }>
 }) {
+  const session = await requireSession()
   const { id } = await params
-  const client = await getClient(id)
+  const client = await getClient(id, session.user.firmId)
 
   if (!client) notFound()
 

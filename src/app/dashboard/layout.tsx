@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import Image from 'next/image'
 import { usePathname } from 'next/navigation'
+import { useSession, signOut } from 'next-auth/react'
 
 const NAV_ITEMS = [
   { href: '/dashboard', label: 'Dashboard', icon: '◎' },
@@ -19,6 +20,7 @@ export default function DashboardLayout({
   children: React.ReactNode
 }) {
   const pathname = usePathname()
+  const { data: session } = useSession()
 
   return (
     <div className="min-h-screen bg-slate-50 flex">
@@ -52,8 +54,28 @@ export default function DashboardLayout({
           })}
         </nav>
 
-        <div className="px-5 py-4 border-t border-slate-800">
-          <p className="text-[11px] text-slate-600">Morway v1.0 · Tech Sanctum</p>
+        {/* User info + sign out */}
+        <div className="px-4 py-3 border-t border-slate-800">
+          {session?.user && (
+            <div className="flex items-center justify-between">
+              <div className="min-w-0">
+                <p className="text-sm font-medium text-slate-300 truncate">{session.user.name}</p>
+                <p className="text-[11px] text-slate-500 truncate">{session.user.email}</p>
+              </div>
+              <button
+                onClick={() => signOut({ callbackUrl: '/login' })}
+                className="ml-2 p-1.5 text-slate-500 hover:text-white rounded-md hover:bg-slate-800 transition-colors shrink-0"
+                title="Sign out"
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                  <polyline points="16 17 21 12 16 7" />
+                  <line x1="21" y1="12" x2="9" y2="12" />
+                </svg>
+              </button>
+            </div>
+          )}
+          <p className="text-[11px] text-slate-600 mt-2">Morway v1.0 · Tech Sanctum</p>
         </div>
       </aside>
 
