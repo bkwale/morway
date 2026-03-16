@@ -26,6 +26,7 @@ import { db } from './db'
 import { parseUBLInvoice, type ParsedInvoice } from './ubl-parser'
 import { parsePdfInvoices, parseImageInvoices, parseEmailBodyInvoices, parseDocxInvoices, parseSpreadsheetInvoices } from './pdf-parser'
 import { processInvoice } from './invoice-processor'
+import { getChartPromptContext } from './chart-of-accounts'
 
 // ─── TYPES ──────────────────────────────────────────────────────────────────
 
@@ -89,7 +90,7 @@ function extractClientSlug(email: string): string | null {
  * For MVP: match against client name (slugified) or a lookup table.
  */
 async function findClientByEmail(toAddresses: string[]): Promise<{
-  client: { id: string; name: string; firmId: string } | null
+  client: { id: string; name: string; firmId: string; accountingSystem: string | null; country: string | null; industry: string | null } | null
   slug: string | null
 }> {
   for (const addr of toAddresses) {
@@ -98,7 +99,7 @@ async function findClientByEmail(toAddresses: string[]): Promise<{
 
     const clients = await db.client.findMany({
       where: { active: true },
-      select: { id: true, name: true, firmId: true },
+      select: { id: true, name: true, firmId: true, accountingSystem: true, country: true, industry: true },
     })
 
     // Match slug to client name (e.g., "hof-schmidt" matches "Hof Schmidt GmbH")
@@ -263,7 +264,8 @@ async function parseAttachment(
   buffer: Buffer,
   type: SupportedType,
   filename: string,
-  contentType: string
+  contentType: string,
+  chartContext?: string
 ): Promise<ParsedInvoice[]> {
   if (type === 'xml') {
     const xml = buffer.toString('utf-8')
@@ -271,20 +273,20 @@ async function parseAttachment(
   }
 
   if (type === 'pdf') {
-    return parsePdfInvoices(buffer)
+    return parsePdfInvoices(buffer, chartContext)
   }
 
   if (type === 'image') {
     const mimeType = resolveImageMime(filename, contentType)
-    return parseImageInvoices(buffer, mimeType)
+    return parseImageInvoices(buffer, mimeType, chartContext)
   }
 
   if (type === 'docx') {
-    return parseDocxInvoices(buffer)
+    return parseDocxInvoices(buffer, chartContext)
   }
 
   if (type === 'spreadsheet') {
-    return parseSpreadsheetInvoices(buffer, filename)
+    return parseSpreadsheetInvoices(buffer, filename, chartContext)
   }
 
   return []
@@ -391,12 +393,19 @@ export async function ingestEmail(payload: ResendInboundPayload): Promise<Ingest
     (a) => classifyAttachment(a.filename, a.content_type) !== 'unsupported'
   )
 
+  // Build chart-of-accounts context for AI parsing (needed for both body fallback and attachments)
+  const chartContext = getChartPromptContext(
+    client.accountingSystem ?? 'NONE',
+    client.country ?? 'FR',
+    client.industry ?? 'general'
+  )
+
   // Step 4: If no processable attachments, try email body fallback
   if (processableAttachments.length === 0) {
     console.log(`[email-ingest] No processable attachments (${attachments.length} total). Trying email body fallback.`)
 
     const bodyText = payload.text ?? ''
-    const bodyParsed = await parseEmailBodyInvoices(payload.subject, bodyText)
+    const bodyParsed = await parseEmailBodyInvoices(payload.subject, bodyText, chartContext)
 
     if (bodyParsed.length === 0 || (bodyParsed.length === 1 && bodyParsed[0].errors.length > 0 && !bodyParsed[0].invoiceNumber)) {
       const bodyError = bodyParsed[0]?.errors[0] ?? 'No invoice data found'
@@ -450,7 +459,7 @@ export async function ingestEmail(payload: ResendInboundPayload): Promise<Ingest
       console.log(`[email-ingest] Downloading attachment: ${attachment.filename} (${attachment.id})`)
       const buffer = await downloadAttachment(payload.email_id, attachment.id)
 
-      const parsedList = await parseAttachment(buffer, type, attachment.filename, attachment.content_type)
+      const parsedList = await parseAttachment(buffer, type, attachment.filename, attachment.content_type, chartContext)
       if (parsedList.length === 0) {
         errors.push(`Failed to parse: ${attachment.filename}`)
         continue

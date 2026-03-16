@@ -90,7 +90,7 @@ Rules:
  * Parse a PDF that may contain one or more invoices.
  * Returns an array of ParsedInvoice (one per invoice found).
  */
-export async function parsePdfInvoices(pdfBuffer: Buffer): Promise<ParsedInvoice[]> {
+export async function parsePdfInvoices(pdfBuffer: Buffer, chartContext?: string): Promise<ParsedInvoice[]> {
   // Step 1: Extract raw text
   let rawText: string
   try {
@@ -119,7 +119,7 @@ export async function parsePdfInvoices(pdfBuffer: Buffer): Promise<ParsedInvoice
       messages: [
         {
           role: 'user',
-          content: `${EXTRACTION_PROMPT}\n\nInvoice text:\n\n${rawText.slice(0, 12000)}`,
+          content: `${EXTRACTION_PROMPT}${chartContext ? `\n\nCLIENT CONTEXT:\n${chartContext}` : ''}\n\nInvoice text:\n\n${rawText.slice(0, 12000)}`,
         },
       ],
     })
@@ -164,7 +164,8 @@ export async function parsePdfInvoice(pdfBuffer: Buffer): Promise<ParsedInvoice>
  */
 export async function parseImageInvoices(
   imageBuffer: Buffer,
-  mimeType: 'image/jpeg' | 'image/png' | 'image/webp' | 'image/gif'
+  mimeType: 'image/jpeg' | 'image/png' | 'image/webp' | 'image/gif',
+  chartContext?: string
 ): Promise<ParsedInvoice[]> {
   const apiKey = process.env.ANTHROPIC_API_KEY
   if (!apiKey) {
@@ -193,7 +194,7 @@ export async function parseImageInvoices(
             },
             {
               type: 'text',
-              text: EXTRACTION_PROMPT + '\n\nExtract invoice data from this image. The image may be a scan, photo, or screenshot of one or more invoices.',
+              text: EXTRACTION_PROMPT + (chartContext ? `\n\nCLIENT CONTEXT:\n${chartContext}` : '') + '\n\nExtract invoice data from this image. The image may be a scan, photo, or screenshot of one or more invoices.',
             },
           ],
         },
@@ -229,7 +230,8 @@ export async function parseImageInvoices(
  */
 export async function parseEmailBodyInvoices(
   subject: string,
-  bodyText: string
+  bodyText: string,
+  chartContext?: string
 ): Promise<ParsedInvoice[]> {
   const apiKey = process.env.ANTHROPIC_API_KEY
   if (!apiKey) {
@@ -257,7 +259,7 @@ export async function parseEmailBodyInvoices(
       messages: [
         {
           role: 'user',
-          content: `${EXTRACTION_PROMPT}\n\nEmail subject: ${subject}\n\nEmail body:\n\n${text.slice(0, 8000)}`,
+          content: `${EXTRACTION_PROMPT}${chartContext ? `\n\nCLIENT CONTEXT:\n${chartContext}` : ''}\n\nEmail subject: ${subject}\n\nEmail body:\n\n${text.slice(0, 8000)}`,
         },
       ],
     })
@@ -289,7 +291,7 @@ export async function parseEmailBodyInvoices(
  * Uses mammoth for text extraction, then Claude for structuring.
  * Common with small suppliers who create invoices in Word.
  */
-export async function parseDocxInvoices(docxBuffer: Buffer): Promise<ParsedInvoice[]> {
+export async function parseDocxInvoices(docxBuffer: Buffer, chartContext?: string): Promise<ParsedInvoice[]> {
   const apiKey = process.env.ANTHROPIC_API_KEY
   if (!apiKey) {
     return [emptyInvoice(['ANTHROPIC_API_KEY not configured — cannot parse DOCX invoices'])]
@@ -317,7 +319,7 @@ export async function parseDocxInvoices(docxBuffer: Buffer): Promise<ParsedInvoi
       messages: [
         {
           role: 'user',
-          content: `${EXTRACTION_PROMPT}\n\nInvoice text (extracted from Word document):\n\n${rawText.slice(0, 12000)}`,
+          content: `${EXTRACTION_PROMPT}${chartContext ? `\n\nCLIENT CONTEXT:\n${chartContext}` : ''}\n\nInvoice text (extracted from Word document):\n\n${rawText.slice(0, 12000)}`,
         },
       ],
     })
@@ -349,7 +351,7 @@ export async function parseDocxInvoices(docxBuffer: Buffer): Promise<ParsedInvoi
  * Uses xlsx (SheetJS) for extraction, then Claude for structuring.
  * Common with suppliers who send billing summaries or multi-invoice spreadsheets.
  */
-export async function parseSpreadsheetInvoices(buffer: Buffer, filename: string): Promise<ParsedInvoice[]> {
+export async function parseSpreadsheetInvoices(buffer: Buffer, filename: string, chartContext?: string): Promise<ParsedInvoice[]> {
   const apiKey = process.env.ANTHROPIC_API_KEY
   if (!apiKey) {
     return [emptyInvoice(['ANTHROPIC_API_KEY not configured — cannot parse spreadsheet invoices'])]
@@ -387,7 +389,7 @@ export async function parseSpreadsheetInvoices(buffer: Buffer, filename: string)
       messages: [
         {
           role: 'user',
-          content: `${EXTRACTION_PROMPT}\n\nInvoice data (extracted from spreadsheet "${filename}"):\n\n${rawText.slice(0, 12000)}`,
+          content: `${EXTRACTION_PROMPT}${chartContext ? `\n\nCLIENT CONTEXT:\n${chartContext}` : ''}\n\nInvoice data (extracted from spreadsheet "${filename}"):\n\n${rawText.slice(0, 12000)}`,
         },
       ],
     })

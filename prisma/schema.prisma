@@ -86,6 +86,8 @@ model Client {
   name             String
   vatNumber        String?
   peppolId         String?    @unique
+  country          String     @default("FR")
+  industry         String     @default("general")
   accountingSystem String     @default("NONE")
   xeroTenantId     String?    @unique
   xeroConnected    Boolean    @default(false)
