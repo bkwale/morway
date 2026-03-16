@@ -41,6 +41,7 @@ export const ACCOUNTING_SYSTEM = {
   XERO: 'XERO',
   EXACT_ONLINE: 'EXACT_ONLINE',
   DATEV: 'DATEV',
+  LEXWARE: 'LEXWARE',
 } as const
 
 export type AccountingSystem = (typeof ACCOUNTING_SYSTEM)[keyof typeof ACCOUNTING_SYSTEM]

@@ -89,6 +89,11 @@ export async function getAdapter(clientId: string): Promise<AccountingAdapter | 
       return datevAdapter
     }
 
+    case ACCOUNTING_SYSTEM.LEXWARE: {
+      const { lexwareAdapter } = await import('./lexware')
+      return lexwareAdapter
+    }
+
     case ACCOUNTING_SYSTEM.NONE:
     default:
       return null
@@ -106,6 +111,8 @@ export function getAdapterBySystem(system: AccountingSystem): Promise<Accounting
       return import('./exact-online').then((m) => m.exactOnlineAdapter)
     case ACCOUNTING_SYSTEM.DATEV:
       return import('./datev').then((m) => m.datevAdapter)
+    case ACCOUNTING_SYSTEM.LEXWARE:
+      return import('./lexware').then((m) => m.lexwareAdapter)
     default:
       return Promise.resolve(null)
   }

@@ -13,9 +13,16 @@ const STEPS: { key: Step; label: string; number: number }[] = [
   { key: 'done', label: 'Ready', number: 4 },
 ]
 
-type AccountingSystem = 'NONE' | 'XERO' | 'EXACT_ONLINE' | 'DATEV'
+type AccountingSystem = 'NONE' | 'XERO' | 'EXACT_ONLINE' | 'DATEV' | 'LEXWARE'
 
 const ACCOUNTING_OPTIONS: { key: AccountingSystem; name: string; description: string; flag: string; regions: string }[] = [
+  {
+    key: 'LEXWARE',
+    name: 'Lexware buchhalter',
+    description: 'Export Buchungsdaten text file. Import via Datei → Import → Text/ASCII.',
+    flag: '🇩🇪',
+    regions: 'Germany (SMEs, freelancers)',
+  },
   {
     key: 'EXACT_ONLINE',
     name: 'Exact Online',
@@ -28,7 +35,7 @@ const ACCOUNTING_OPTIONS: { key: AccountingSystem; name: string; description: st
     name: 'DATEV',
     description: 'Export Buchungsstapel CSV. Import into DATEV.',
     flag: '🇩🇪',
-    regions: 'Germany',
+    regions: 'Germany (Steuerberater)',
   },
   {
     key: 'XERO',
@@ -168,6 +175,21 @@ function OnboardPage() {
         return
       }
 
+      if (selectedSystem === 'LEXWARE') {
+        // Lexware doesn't need OAuth — file-based export
+        const res = await fetch(`/api/clients/${clientId}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            accountingSystem: 'LEXWARE',
+          }),
+        })
+
+        if (!res.ok) throw new Error('Failed to save Lexware config')
+        setStep('rules')
+        return
+      }
+
       // NONE — just update and move on
       await fetch(`/api/clients/${clientId}`, {
         method: 'PATCH',
@@ -243,7 +265,7 @@ function OnboardPage() {
   }
 
   // Get account code examples based on selected system
-  const accountCodeExamples = selectedSystem === 'DATEV'
+  const accountCodeExamples = (selectedSystem === 'DATEV' || selectedSystem === 'LEXWARE')
     ? [
         ['4940', 'Fachliteratur (books/publications)'],
         ['4930', 'Bürobedarf (office supplies)'],
@@ -485,6 +507,8 @@ function OnboardPage() {
                 ? `Connect ${selectedSystem === 'XERO' ? 'Xero' : 'Exact Online'}`
                 : selectedSystem === 'DATEV'
                 ? 'Save DATEV Config'
+                : selectedSystem === 'LEXWARE'
+                ? 'Save Lexware Config'
                 : 'Continue'}
             </button>
             <button
@@ -564,7 +588,7 @@ function OnboardPage() {
 
           <div className="mt-8 p-4 bg-slate-50 rounded-xl">
             <p className="text-xs font-medium text-slate-500 mb-2">
-              {selectedSystem === 'DATEV' ? 'Common DATEV account codes (SKR03):' : 'Common account codes:'}
+              {(selectedSystem === 'DATEV' || selectedSystem === 'LEXWARE') ? 'Common German account codes (SKR03):' : 'Common account codes:'}
             </p>
             <div className="grid grid-cols-2 gap-1 text-xs text-slate-500">
               {accountCodeExamples.map(([code, label]) => (
@@ -589,6 +613,7 @@ function OnboardPage() {
           <p className="text-sm text-slate-500 mb-2 max-w-sm mx-auto">
             Client created{rulesCreated > 0 ? ` with ${rulesCreated} categorisation rule${rulesCreated !== 1 ? 's' : ''}` : ''}.
             {selectedSystem === 'DATEV' && ' DATEV export will be available once invoices are processed.'}
+            {selectedSystem === 'LEXWARE' && ' Lexware export will be available once invoices are processed.'}
             {selectedSystem === 'EXACT_ONLINE' && ' Approved invoices will auto-post to Exact Online.'}
             {selectedSystem === 'XERO' && ' Approved invoices will auto-post to Xero.'}
             {(!selectedSystem || selectedSystem === 'NONE') && ' Connect an accounting system later to enable auto-posting.'}
@@ -628,6 +653,9 @@ function OnboardPage() {
               <p>3. Review any exceptions that land in the queue</p>
               {selectedSystem === 'DATEV' && (
                 <p>4. Download DATEV export from the client dashboard when ready</p>
+              )}
+              {selectedSystem === 'LEXWARE' && (
+                <p>4. Export Kreditoren + Buchungen from the client dashboard and import into Lexware buchhalter</p>
               )}
             </div>
           </div>

@@ -126,6 +126,25 @@ export default async function ClientDetailPage({
               </Link>
             </>
           )}
+          {client.accountingSystem === 'LEXWARE' && (
+            <>
+              <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium bg-red-50 text-red-700 border border-red-200">
+                Lexware
+              </span>
+              <Link
+                href={`/api/export/lexware?clientId=${client.id}&type=suppliers`}
+                className="px-3 py-2 bg-white text-red-700 text-xs font-medium rounded-lg border border-red-200 hover:bg-red-50 transition-colors"
+              >
+                Export Kreditoren
+              </Link>
+              <Link
+                href={`/api/export/lexware?clientId=${client.id}`}
+                className="px-4 py-2 bg-red-600 text-white text-xs font-medium rounded-lg hover:bg-red-700 transition-colors"
+              >
+                Export Buchungen
+              </Link>
+            </>
+          )}
           {client.accountingSystem === 'NONE' && (
             <Link
               href={`/dashboard/clients/onboard?clientId=${client.id}&clientName=${encodeURIComponent(client.name)}`}
