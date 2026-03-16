@@ -57,11 +57,13 @@ export async function processInvoice(invoiceId: string): Promise<void> {
     // Peppol invoices store UBL XML — we parse here.
     let parsed: ReturnType<typeof parseUBLInvoice>
     let isPreParsed = false
+    let preParseSource = 'EMAIL_PDF'
 
     try {
       const maybeJson = JSON.parse(invoice.rawXml)
-      if (maybeJson._source === 'EMAIL_PDF' || maybeJson._source === 'EMAIL_BODY') {
+      if (maybeJson._source === 'EMAIL_PDF' || maybeJson._source === 'EMAIL_BODY' || maybeJson._source === 'EMAIL_DOCX' || maybeJson._source === 'EMAIL_SPREADSHEET' || maybeJson._source === 'EMAIL_IMAGE') {
         isPreParsed = true
+        preParseSource = maybeJson._source ?? 'EMAIL_PDF'
         parsed = {
           invoiceNumber: maybeJson.invoiceNumber ?? invoice.invoiceNumber,
           invoiceDate: new Date(maybeJson.invoiceDate ?? invoice.invoiceDate),
@@ -85,7 +87,7 @@ export async function processInvoice(invoiceId: string): Promise<void> {
     }
 
     await createAuditLog(invoiceId, AUDIT_ACTION.PARSED, {
-      source: isPreParsed ? 'EMAIL_PDF' : 'PEPPOL_XML',
+      source: isPreParsed ? preParseSource : 'PEPPOL_XML',
       errors: parsed.errors,
       lineItemCount: parsed.lineItems.length,
     })

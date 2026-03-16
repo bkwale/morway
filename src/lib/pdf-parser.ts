@@ -273,6 +273,136 @@ export async function parseEmailBodyInvoices(
   }
 }
 
+// ─── DOCX INVOICE PARSING ───────────────────────────────────────────────────
+
+/**
+ * Parse invoice data from a Word document (.docx).
+ * Uses mammoth for text extraction, then Claude for structuring.
+ * Common with small suppliers who create invoices in Word.
+ */
+export async function parseDocxInvoices(docxBuffer: Buffer): Promise<ParsedInvoice[]> {
+  const apiKey = process.env.ANTHROPIC_API_KEY
+  if (!apiKey) {
+    return [emptyInvoice(['ANTHROPIC_API_KEY not configured — cannot parse DOCX invoices'])]
+  }
+
+  let rawText: string
+  try {
+    const mammoth = await import('mammoth')
+    const result = await mammoth.extractRawText({ buffer: docxBuffer })
+    rawText = result.value
+  } catch (err) {
+    return [emptyInvoice([`DOCX text extraction failed: ${err instanceof Error ? err.message : 'unknown error'}`])]
+  }
+
+  if (!rawText || rawText.trim().length < 20) {
+    return [emptyInvoice(['DOCX contains no readable text'])]
+  }
+
+  const anthropic = new Anthropic({ apiKey })
+
+  try {
+    const response = await anthropic.messages.create({
+      model: 'claude-sonnet-4-6',
+      max_tokens: 4000,
+      messages: [
+        {
+          role: 'user',
+          content: `${EXTRACTION_PROMPT}\n\nInvoice text (extracted from Word document):\n\n${rawText.slice(0, 12000)}`,
+        },
+      ],
+    })
+
+    const text = response.content[0].type === 'text' ? response.content[0].text : ''
+    const parsed = extractJsonFromResponse(text)
+    if (!parsed) {
+      return [emptyInvoice(['DOCX extraction returned no parseable JSON'])]
+    }
+
+    const rawItems = Array.isArray(parsed)
+      ? (parsed as Array<Record<string, unknown>>)
+      : [parsed as Record<string, unknown>]
+
+    if (rawItems.length === 0) {
+      return [emptyInvoice(['DOCX extraction returned empty array'])]
+    }
+
+    return rawItems.map((extracted) => mapToParsedInvoice(extracted))
+  } catch (err) {
+    return [emptyInvoice([`DOCX extraction failed: ${err instanceof Error ? err.message : 'unknown error'}`])]
+  }
+}
+
+// ─── XLSX / CSV INVOICE PARSING ─────────────────────────────────────────────
+
+/**
+ * Parse invoice data from an Excel spreadsheet (.xlsx, .xls) or CSV.
+ * Uses xlsx (SheetJS) for extraction, then Claude for structuring.
+ * Common with suppliers who send billing summaries or multi-invoice spreadsheets.
+ */
+export async function parseSpreadsheetInvoices(buffer: Buffer, filename: string): Promise<ParsedInvoice[]> {
+  const apiKey = process.env.ANTHROPIC_API_KEY
+  if (!apiKey) {
+    return [emptyInvoice(['ANTHROPIC_API_KEY not configured — cannot parse spreadsheet invoices'])]
+  }
+
+  let rawText: string
+  try {
+    const XLSX = await import('xlsx')
+    const workbook = XLSX.read(buffer, { type: 'buffer' })
+
+    // Convert all sheets to text, separated by headers
+    const sheets: string[] = []
+    for (const sheetName of workbook.SheetNames) {
+      const sheet = workbook.Sheets[sheetName]
+      const csv = XLSX.utils.sheet_to_csv(sheet)
+      if (csv.trim().length > 10) {
+        sheets.push(`--- Sheet: ${sheetName} ---\n${csv}`)
+      }
+    }
+    rawText = sheets.join('\n\n')
+  } catch (err) {
+    return [emptyInvoice([`Spreadsheet parsing failed: ${err instanceof Error ? err.message : 'unknown error'}`])]
+  }
+
+  if (!rawText || rawText.trim().length < 20) {
+    return [emptyInvoice(['Spreadsheet contains no readable data'])]
+  }
+
+  const anthropic = new Anthropic({ apiKey })
+
+  try {
+    const response = await anthropic.messages.create({
+      model: 'claude-sonnet-4-6',
+      max_tokens: 4000,
+      messages: [
+        {
+          role: 'user',
+          content: `${EXTRACTION_PROMPT}\n\nInvoice data (extracted from spreadsheet "${filename}"):\n\n${rawText.slice(0, 12000)}`,
+        },
+      ],
+    })
+
+    const text = response.content[0].type === 'text' ? response.content[0].text : ''
+    const parsed = extractJsonFromResponse(text)
+    if (!parsed) {
+      return [emptyInvoice(['Spreadsheet extraction returned no parseable JSON'])]
+    }
+
+    const rawItems = Array.isArray(parsed)
+      ? (parsed as Array<Record<string, unknown>>)
+      : [parsed as Record<string, unknown>]
+
+    if (rawItems.length === 0) {
+      return [emptyInvoice(['Spreadsheet extraction returned empty array'])]
+    }
+
+    return rawItems.map((extracted) => mapToParsedInvoice(extracted))
+  } catch (err) {
+    return [emptyInvoice([`Spreadsheet extraction failed: ${err instanceof Error ? err.message : 'unknown error'}`])]
+  }
+}
+
 // ─── JSON EXTRACTION ──────────────────────────────────────────────────────────
 
 /**

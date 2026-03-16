@@ -24,7 +24,7 @@
 
 import { db } from './db'
 import { parseUBLInvoice, type ParsedInvoice } from './ubl-parser'
-import { parsePdfInvoices, parseImageInvoices, parseEmailBodyInvoices } from './pdf-parser'
+import { parsePdfInvoices, parseImageInvoices, parseEmailBodyInvoices, parseDocxInvoices, parseSpreadsheetInvoices } from './pdf-parser'
 import { processInvoice } from './invoice-processor'
 
 // ─── TYPES ──────────────────────────────────────────────────────────────────
@@ -157,7 +157,7 @@ function extractForwardedSender(subject: string, bodyText: string | undefined): 
 
 // ─── ATTACHMENT CLASSIFICATION ──────────────────────────────────────────────
 
-type SupportedType = 'pdf' | 'xml' | 'image' | 'unsupported'
+type SupportedType = 'pdf' | 'xml' | 'image' | 'docx' | 'spreadsheet' | 'unsupported'
 
 /**
  * Image MIME type subset accepted by Claude's vision API.
@@ -172,12 +172,30 @@ const IMAGE_EXTENSIONS: Set<string> = new Set([
   'jpg', 'jpeg', 'png', 'webp', 'gif',
 ])
 
+const DOCX_MIME_TYPES: Set<string> = new Set([
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  'application/msword',
+])
+
+const SPREADSHEET_MIME_TYPES: Set<string> = new Set([
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  'application/vnd.ms-excel',
+  'text/csv',
+  'application/csv',
+])
+
+const SPREADSHEET_EXTENSIONS: Set<string> = new Set([
+  'xlsx', 'xls', 'csv', 'tsv',
+])
+
 function classifyAttachment(filename: string, contentType: string): SupportedType {
   const ext = filename.toLowerCase().split('.').pop() ?? ''
 
   if (ext === 'pdf' || contentType === 'application/pdf') return 'pdf'
   if (ext === 'xml' || contentType === 'text/xml' || contentType === 'application/xml') return 'xml'
   if (IMAGE_EXTENSIONS.has(ext) || IMAGE_MIME_TYPES.has(contentType)) return 'image'
+  if (ext === 'docx' || ext === 'doc' || DOCX_MIME_TYPES.has(contentType)) return 'docx'
+  if (SPREADSHEET_EXTENSIONS.has(ext) || SPREADSHEET_MIME_TYPES.has(contentType)) return 'spreadsheet'
 
   return 'unsupported'
 }
@@ -259,6 +277,14 @@ async function parseAttachment(
   if (type === 'image') {
     const mimeType = resolveImageMime(filename, contentType)
     return parseImageInvoices(buffer, mimeType)
+  }
+
+  if (type === 'docx') {
+    return parseDocxInvoices(buffer)
+  }
+
+  if (type === 'spreadsheet') {
+    return parseSpreadsheetInvoices(buffer, filename)
   }
 
   return []
@@ -432,9 +458,17 @@ export async function ingestEmail(payload: ResendInboundPayload): Promise<Ingest
 
       console.log(`[email-ingest] Found ${parsedList.length} invoice(s) in ${attachment.filename}`)
 
+      // Map file type to specific source tag for invoice-processor
+      const sourceTag = type === 'pdf' ? 'EMAIL_PDF'
+        : type === 'xml' ? 'EMAIL_PDF'
+        : type === 'image' ? 'EMAIL_IMAGE'
+        : type === 'docx' ? 'EMAIL_DOCX'
+        : type === 'spreadsheet' ? 'EMAIL_SPREADSHEET'
+        : 'EMAIL_PDF'
+
       for (const parsed of parsedList) {
         await createInvoiceRecord(parsed, client, {
-          source: 'EMAIL',
+          source: sourceTag,
           from: effectiveSender,
           subject: payload.subject,
           filename: attachment.filename,
