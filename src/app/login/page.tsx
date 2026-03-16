@@ -102,8 +102,13 @@ function LoginForm() {
 
         {/* Footer */}
         <p className="text-center text-xs text-slate-400 mt-6">
-          Only pre-registered firm members can sign in.<br />
           No password needed — we send a secure link to your email.
+        </p>
+        <p className="text-center text-xs text-slate-400 mt-2">
+          New to Morway?{' '}
+          <a href="/signup" className="text-slate-600 hover:text-slate-900 transition-colors">
+            Start your free trial
+          </a>
         </p>
       </div>
     </div>

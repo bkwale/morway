@@ -174,7 +174,7 @@ async function sendExceptionEmail(
           </a>
 
           <p style="margin: 20px 0 0; font-size: 11px; color: #94a3b8; text-align: center;">
-            Morway · Tech Sanctum OU
+            Morway
           </p>
         </div>
       </div>
@@ -250,7 +250,7 @@ export async function sendDailyDigest(firmId: string) {
               `}
 
               <p style="margin: 20px 0 0; font-size: 11px; color: #94a3b8; text-align: center;">
-                Morway · Tech Sanctum OU
+                Morway
               </p>
             </div>
           </div>

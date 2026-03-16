@@ -11,15 +11,16 @@ datasource db {
 }
 
 model Firm {
-  id        String   @id @default(uuid())
-  name      String
-  email     String   @unique
-  plan      String   @default("STARTER")
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  users     User[]
-  clients   Client[]
-  rules     Rule[]
+  id           String    @id @default(uuid())
+  name         String
+  email        String    @unique
+  plan         String    @default("STARTER")
+  trialEndsAt  DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  users        User[]
+  clients      Client[]
+  rules        Rule[]
 
   @@map("firms")
 }

@@ -12,6 +12,7 @@ const NAV_ITEMS = [
   { href: '/dashboard/rules', label: 'Rules', icon: '⚙' },
   { href: '/dashboard/clients', label: 'Clients', icon: '◈' },
   { href: '/dashboard/audit', label: 'Audit Trail', icon: '◷' },
+  { href: '/dashboard/settings/team', label: 'Team', icon: '◇' },
 ]
 
 export default function DashboardLayout({
@@ -75,7 +76,7 @@ export default function DashboardLayout({
               </button>
             </div>
           )}
-          <p className="text-[11px] text-slate-600 mt-2">Morway v1.0 · Tech Sanctum</p>
+          <p className="text-[11px] text-slate-600 mt-2">Morway v1.0</p>
         </div>
       </aside>
 
