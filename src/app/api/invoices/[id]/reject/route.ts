@@ -30,8 +30,9 @@ export async function POST(
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 
-  if (invoice.status !== INVOICE_STATUS.EXCEPTION) {
-    return NextResponse.json({ error: 'Invoice is not in exception queue' }, { status: 422 })
+  const REJECTABLE = [INVOICE_STATUS.EXCEPTION, INVOICE_STATUS.PENDING, INVOICE_STATUS.FAILED]
+  if (!REJECTABLE.includes(invoice.status as any)) {
+    return NextResponse.json({ error: `Cannot reject invoice with status "${invoice.status}"` }, { status: 422 })
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

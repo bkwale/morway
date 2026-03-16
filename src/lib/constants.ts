@@ -7,6 +7,7 @@ export const INVOICE_STATUS = {
   APPROVED: 'APPROVED',
   REJECTED: 'REJECTED',
   FAILED: 'FAILED',
+  DELETED: 'DELETED',
 } as const
 
 export type InvoiceStatus = (typeof INVOICE_STATUS)[keyof typeof INVOICE_STATUS]
@@ -79,4 +80,5 @@ export const AUDIT_ACTION = {
   EXCEPTION_REJECTED: 'EXCEPTION_REJECTED',
   PAYMENT_MATCHED: 'PAYMENT_MATCHED',
   FAILED: 'FAILED',
+  DELETED: 'DELETED',
 } as const

@@ -2,6 +2,7 @@ import { db } from '@/lib/db'
 import { requireSession } from '@/lib/get-session'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
+import InvoiceActions from '@/components/dashboard/invoice-actions'
 
 export const dynamic = 'force-dynamic'
 
@@ -29,6 +30,7 @@ const STATUS_STYLES: Record<string, string> = {
   APPROVED: 'bg-emerald-50 text-emerald-700 border border-emerald-200',
   REJECTED: 'bg-red-50 text-red-700 border border-red-200',
   FAILED: 'bg-red-50 text-red-700 border border-red-200',
+  DELETED: 'bg-slate-100 text-slate-400 border border-slate-200',
   POSTED: 'bg-emerald-50 text-emerald-700 border border-emerald-200',
 }
 
@@ -43,6 +45,7 @@ const AUDIT_DOTS: Record<string, string> = {
   EXCEPTION_APPROVED: 'bg-emerald-500',
   EXCEPTION_REJECTED: 'bg-red-400',
   FAILED: 'bg-red-500',
+  DELETED: 'bg-slate-400',
 }
 
 export default async function InvoiceDetailPage({
@@ -92,6 +95,11 @@ export default async function InvoiceDetailPage({
             Net: {invoice.currency} {invoice.netAmount.toFixed(2)} · VAT: {invoice.currency} {invoice.vatAmount.toFixed(2)}
           </p>
         </div>
+      </div>
+
+      {/* Action bar */}
+      <div className="mb-6">
+        <InvoiceActions invoiceId={invoice.id} status={invoice.status} />
       </div>
 
       <div className="grid grid-cols-3 gap-6">

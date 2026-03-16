@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useMemo } from 'react'
+import { useEffect, useState, useMemo, useCallback } from 'react'
 import Link from 'next/link'
 
 interface Invoice {
@@ -58,6 +58,33 @@ export default function InvoicesPage() {
     }
     return counts
   }, [invoices])
+
+  const [actionLoading, setActionLoading] = useState<string | null>(null)
+  const [confirmDelete, setConfirmDelete] = useState<string | null>(null)
+
+  const handleAction = useCallback(async (invoiceId: string, action: 'approve' | 'reject' | 'delete') => {
+    setActionLoading(`${invoiceId}-${action}`)
+    try {
+      const res = await fetch(`/api/invoices/${invoiceId}/${action}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({}),
+      })
+      if (res.ok) {
+        if (action === 'delete') {
+          setInvoices((prev) => prev.filter((i) => i.id !== invoiceId))
+        } else {
+          // Refresh data
+          const updated = await fetch('/api/invoices').then((r) => r.json())
+          setInvoices(updated)
+        }
+      }
+    } catch { /* silently fail — detail page has proper error handling */ }
+    finally {
+      setActionLoading(null)
+      setConfirmDelete(null)
+    }
+  }, [])
 
   const filtered = useMemo(() => {
     let result = invoices
@@ -149,12 +176,13 @@ export default function InvoicesPage() {
               <th className="text-left px-5 py-3 text-xs font-medium text-slate-500 uppercase tracking-wider">Status</th>
               <th className="text-right px-5 py-3 text-xs font-medium text-slate-500 uppercase tracking-wider">Confidence</th>
               <th className="text-left px-5 py-3 text-xs font-medium text-slate-500 uppercase tracking-wider">Received</th>
+              <th className="text-right px-5 py-3 text-xs font-medium text-slate-500 uppercase tracking-wider">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
             {filtered.length === 0 && (
               <tr>
-                <td colSpan={7} className="px-5 py-12 text-center text-slate-400">
+                <td colSpan={8} className="px-5 py-12 text-center text-slate-400">
                   {search ? 'No invoices match your search' : 'No invoices yet'}
                 </td>
               </tr>
@@ -200,6 +228,58 @@ export default function InvoicesPage() {
                   </td>
                   <td className="px-5 py-3 text-slate-400 text-xs tabular-nums">
                     {new Date(inv.receivedAt).toLocaleDateString('en-GB')}
+                  </td>
+                  <td className="px-5 py-3 text-right">
+                    <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      {['PENDING', 'EXCEPTION', 'FAILED'].includes(inv.status) && (
+                        <>
+                          <button
+                            onClick={(e) => { e.preventDefault(); handleAction(inv.id, 'approve') }}
+                            disabled={actionLoading !== null}
+                            className="px-2 py-1 rounded text-[11px] font-medium text-emerald-700 hover:bg-emerald-50 disabled:opacity-40 transition-colors"
+                            title="Approve"
+                          >
+                            {actionLoading === `${inv.id}-approve` ? '...' : 'Approve'}
+                          </button>
+                          <button
+                            onClick={(e) => { e.preventDefault(); handleAction(inv.id, 'reject') }}
+                            disabled={actionLoading !== null}
+                            className="px-2 py-1 rounded text-[11px] font-medium text-slate-500 hover:bg-slate-100 disabled:opacity-40 transition-colors"
+                            title="Reject"
+                          >
+                            {actionLoading === `${inv.id}-reject` ? '...' : 'Reject'}
+                          </button>
+                        </>
+                      )}
+                      {inv.status !== 'AUTO_POSTED' && inv.status !== 'APPROVED' && (
+                        confirmDelete === inv.id ? (
+                          <div className="flex items-center gap-1">
+                            <button
+                              onClick={(e) => { e.preventDefault(); handleAction(inv.id, 'delete') }}
+                              disabled={actionLoading !== null}
+                              className="px-2 py-1 rounded text-[11px] font-medium bg-red-600 text-white hover:bg-red-700 disabled:opacity-40 transition-colors"
+                            >
+                              {actionLoading === `${inv.id}-delete` ? '...' : 'Confirm'}
+                            </button>
+                            <button
+                              onClick={(e) => { e.preventDefault(); setConfirmDelete(null) }}
+                              className="px-2 py-1 rounded text-[11px] font-medium text-slate-500 hover:bg-slate-100 transition-colors"
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        ) : (
+                          <button
+                            onClick={(e) => { e.preventDefault(); setConfirmDelete(inv.id) }}
+                            disabled={actionLoading !== null}
+                            className="px-2 py-1 rounded text-[11px] font-medium text-red-500 hover:bg-red-50 disabled:opacity-40 transition-colors"
+                            title="Delete"
+                          >
+                            Delete
+                          </button>
+                        )
+                      )}
+                    </div>
                   </td>
                 </tr>
               )

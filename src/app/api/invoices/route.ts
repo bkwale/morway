@@ -8,7 +8,7 @@ export async function GET() {
 
   try {
     const invoices = await db.invoice.findMany({
-      where: { client: { firmId: session.user.firmId } },
+      where: { client: { firmId: session.user.firmId }, status: { not: 'DELETED' } },
       include: {
         client: { select: { name: true } },
         supplier: { select: { name: true } },

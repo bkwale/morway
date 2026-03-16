@@ -40,8 +40,9 @@ export async function POST(
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 
-  if (invoice.status !== INVOICE_STATUS.EXCEPTION) {
-    return NextResponse.json({ error: 'Invoice is not in exception queue' }, { status: 422 })
+  const APPROVABLE = [INVOICE_STATUS.EXCEPTION, INVOICE_STATUS.PENDING, INVOICE_STATUS.FAILED]
+  if (!APPROVABLE.includes(invoice.status as any)) {
+    return NextResponse.json({ error: `Cannot approve invoice with status "${invoice.status}"` }, { status: 422 })
   }
 
   // Apply account code overrides to line items
