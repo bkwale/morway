@@ -32,6 +32,8 @@ export interface ParsedLineItem {
   unitPrice: number
   vatRate: number
   lineTotal: number
+  suggestedAccountCode?: string | null
+  accountCodeConfidence?: number | null
 }
 
 // UBL 2.1 namespaces

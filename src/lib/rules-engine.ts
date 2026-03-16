@@ -53,6 +53,19 @@ export async function applyRules(
       return { ...item, accountCode: match.accountCode, ruleId: match.ruleId }
     }
 
+    // Fall back to AI-suggested account code from parsing step
+    if (item.suggestedAccountCode) {
+      const aiConfidence = item.accountCodeConfidence ?? 0.5
+      matchedCount++
+      matches.push({
+        accountCode: item.suggestedAccountCode,
+        ruleId: 'AI_SUGGESTED',
+        confidence: aiConfidence * 0.7, // Discount AI suggestions vs rule matches
+        reason: `AI suggested: ${item.suggestedAccountCode} (${Math.round(aiConfidence * 100)}% confidence)`,
+      })
+      return { ...item, accountCode: item.suggestedAccountCode, ruleId: 'AI_SUGGESTED' }
+    }
+
     return { ...item, accountCode: null, ruleId: null }
   })
 

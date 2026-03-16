@@ -54,7 +54,9 @@ Return ONLY a JSON array (no markdown, no explanation, no code fences):
         "quantity": number,
         "unitPrice": number,
         "vatRate": number,
-        "lineTotal": number
+        "lineTotal": number,
+        "suggestedAccountCode": "string — standard chart-of-accounts code (see below)",
+        "accountCodeConfidence": number between 0.0 and 1.0
       }
     ],
     "netAmount": number,
@@ -75,6 +77,13 @@ Rules:
 - If there is only ONE invoice, still return it inside an array: [{ ... }]
 - Extract EVERY invoice and credit note found — do not skip any
 - documentType: "credit_note" for Gutschrift, Avoir, Creditnota, credit memo, or negative totals
+- suggestedAccountCode: suggest a standard accounting code for each line item based on its description:
+  - For French PCG (Plan Comptable Général): 601x (raw materials), 602x (consumables), 606x (services), 607x (goods for resale), 611x (subcontracting), 613x (rent), 615x (maintenance), 616x (insurance), 622x (fees/commissions), 625x (travel), 626x (postal/telecom), 627x (banking), 641x (staff costs), 681x (depreciation)
+  - For German SKR03: 3xxx (materials), 4xxx (revenue), 6xxx (operating expenses), 7xxx (depreciation)
+  - For Dutch RGS: similar mapping
+  - Use the most specific code you can infer from the description (e.g. "fuel" → 6061, "fertilizer" → 6012, "seeds" → 6011, "accounting fees" → 6226)
+  - If you cannot confidently map it, use the broadest applicable category
+- accountCodeConfidence: 0.9+ if the description clearly maps to one code, 0.5-0.8 if reasonable guess, 0.3-0.5 if unsure
 - Return ONLY the JSON array, nothing else`
 
 /**
@@ -531,6 +540,8 @@ function mapToParsedInvoice(extracted: Record<string, unknown>): ParsedInvoice {
     unitPrice: safeNumber(item.unitPrice, 0),
     vatRate: safeNumber(item.vatRate, 0),
     lineTotal: safeNumber(item.lineTotal, 0),
+    suggestedAccountCode: item.suggestedAccountCode ? String(item.suggestedAccountCode) : null,
+    accountCodeConfidence: item.accountCodeConfidence ? safeNumber(item.accountCodeConfidence, 0) : null,
   }))
 
   if (lineItems.length === 0) errors.push('No line items extracted')
