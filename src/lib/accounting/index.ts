@@ -94,6 +94,31 @@ export async function getAdapter(clientId: string): Promise<AccountingAdapter | 
       return lexwareAdapter
     }
 
+    case ACCOUNTING_SYSTEM.FEC: {
+      const { fecAdapter } = await import('./fec')
+      return fecAdapter
+    }
+
+    case ACCOUNTING_SYSTEM.PENNYLANE: {
+      const { pennylaneAdapter } = await import('./pennylane')
+      return pennylaneAdapter
+    }
+
+    case ACCOUNTING_SYSTEM.MONEYBIRD: {
+      const { moneybirdAdapter } = await import('./moneybird')
+      return moneybirdAdapter
+    }
+
+    case ACCOUNTING_SYSTEM.TWINFIELD: {
+      const { twinfieldAdapter } = await import('./twinfield')
+      return twinfieldAdapter
+    }
+
+    case ACCOUNTING_SYSTEM.OCTOPUS: {
+      const { octopusAdapter } = await import('./octopus')
+      return octopusAdapter
+    }
+
     case ACCOUNTING_SYSTEM.NONE:
     default:
       return null
@@ -113,6 +138,16 @@ export function getAdapterBySystem(system: AccountingSystem): Promise<Accounting
       return import('./datev').then((m) => m.datevAdapter)
     case ACCOUNTING_SYSTEM.LEXWARE:
       return import('./lexware').then((m) => m.lexwareAdapter)
+    case ACCOUNTING_SYSTEM.FEC:
+      return import('./fec').then((m) => m.fecAdapter)
+    case ACCOUNTING_SYSTEM.PENNYLANE:
+      return import('./pennylane').then((m) => m.pennylaneAdapter)
+    case ACCOUNTING_SYSTEM.MONEYBIRD:
+      return import('./moneybird').then((m) => m.moneybirdAdapter)
+    case ACCOUNTING_SYSTEM.TWINFIELD:
+      return import('./twinfield').then((m) => m.twinfieldAdapter)
+    case ACCOUNTING_SYSTEM.OCTOPUS:
+      return import('./octopus').then((m) => m.octopusAdapter)
     default:
       return Promise.resolve(null)
   }

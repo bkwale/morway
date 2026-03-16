@@ -95,7 +95,7 @@ export default function LandingPage() {
         <div className="max-w-4xl mx-auto px-8 py-20">
           <h2 className="text-2xl font-bold mb-4 text-center">Built for Accounting Firms</h2>
           <p className="text-slate-400 text-center text-sm mb-10 max-w-lg mx-auto">
-            Especially those managing agricultural clients — dairy farms, arable operations, horticulture businesses.
+            Firms managing 50–2,000 SME clients across Germany, France, Netherlands, Belgium, and the UK.
           </p>
           <div className="grid grid-cols-2 gap-8">
             <div className="bg-slate-800/50 rounded-xl p-6 border border-slate-700">
@@ -184,6 +184,71 @@ export default function LandingPage() {
         </p>
       </section>
 
+      {/* Integrations */}
+      <section className="border-t border-slate-100">
+        <div className="max-w-4xl mx-auto px-8 py-20">
+          <h2 className="text-2xl font-bold text-slate-900 text-center mb-3">
+            Works With Your Accounting System
+          </h2>
+          <p className="text-sm text-slate-500 text-center mb-12 max-w-lg mx-auto">
+            Morway connects to the systems your firm already uses — across Germany, France, Netherlands, Belgium, and the UK.
+          </p>
+
+          <div className="grid grid-cols-3 gap-6 mb-10">
+            <IntegrationCard
+              country="Germany"
+              flag="DE"
+              systems={[
+                { name: 'DATEV', status: 'live', detail: 'Buchungsstapel export' },
+                { name: 'Lexware', status: 'live', detail: 'Buchungsdaten export' },
+              ]}
+            />
+            <IntegrationCard
+              country="France"
+              flag="FR"
+              systems={[
+                { name: 'FEC', status: 'live', detail: 'Fichier des Ecritures Comptables' },
+                { name: 'Pennylane', status: 'soon', detail: 'API integration' },
+              ]}
+            />
+            <IntegrationCard
+              country="Netherlands"
+              flag="NL"
+              systems={[
+                { name: 'Exact Online', status: 'live', detail: 'OAuth + auto-post' },
+                { name: 'Moneybird', status: 'soon', detail: 'API integration' },
+                { name: 'Twinfield', status: 'soon', detail: 'API integration' },
+              ]}
+            />
+          </div>
+          <div className="grid grid-cols-3 gap-6">
+            <IntegrationCard
+              country="Belgium"
+              flag="BE"
+              systems={[
+                { name: 'Exact Online', status: 'live', detail: 'OAuth + auto-post' },
+                { name: 'Octopus', status: 'soon', detail: 'API integration' },
+              ]}
+            />
+            <IntegrationCard
+              country="UK &amp; International"
+              flag="GB"
+              systems={[
+                { name: 'Xero', status: 'live', detail: 'OAuth + auto-post' },
+              ]}
+            />
+            <div className="border border-dashed border-slate-200 rounded-xl p-6 flex items-center justify-center">
+              <p className="text-sm text-slate-400 text-center">
+                Don&apos;t see your system?<br />
+                <a href="mailto:walt@morway.app" className="text-slate-600 hover:text-slate-900 font-medium">
+                  Let us know →
+                </a>
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* E-invoicing timeline */}
       <section className="border-t border-slate-100 bg-slate-50/50">
         <div className="max-w-4xl mx-auto px-8 py-16">
@@ -242,6 +307,42 @@ export default function LandingPage() {
           <span>Invoice processing, automated.</span>
         </div>
       </footer>
+    </div>
+  )
+}
+
+function IntegrationCard({
+  country,
+  flag,
+  systems,
+}: {
+  country: string
+  flag: string
+  systems: { name: string; status: 'live' | 'soon'; detail: string }[]
+}) {
+  return (
+    <div className="border border-slate-200 rounded-xl p-6">
+      <div className="flex items-center gap-2 mb-4">
+        <span className="text-lg">{flag === 'DE' ? '🇩🇪' : flag === 'FR' ? '🇫🇷' : flag === 'NL' ? '🇳🇱' : flag === 'BE' ? '🇧🇪' : '🇬🇧'}</span>
+        <h3 className="text-sm font-semibold text-slate-900">{country}</h3>
+      </div>
+      <div className="space-y-2.5">
+        {systems.map((sys) => (
+          <div key={sys.name} className="flex items-start justify-between">
+            <div>
+              <p className="text-sm font-medium text-slate-700">{sys.name}</p>
+              <p className="text-xs text-slate-400">{sys.detail}</p>
+            </div>
+            <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold ${
+              sys.status === 'live'
+                ? 'bg-emerald-50 text-emerald-700'
+                : 'bg-amber-50 text-amber-600'
+            }`}>
+              {sys.status === 'live' ? 'Live' : 'Coming Soon'}
+            </span>
+          </div>
+        ))}
+      </div>
     </div>
   )
 }

@@ -1,9 +1,9 @@
 # Morway — Product Requirements Document v4
 
-**Status:** MVP Built · Auth Live · Seeking First Trial Customer
+**Status:** MVP Built · Auth Live · 10 Accounting Systems · Seeking First Trial Customer
 **Live URL:** morway.app
-**Version:** 4.0
-**Date:** 14 March 2026
+**Version:** 5.0
+**Date:** 16 March 2026
 **Author:** Walt Koleosho
 
 ---
@@ -33,7 +33,7 @@ Phase 1 is exclusively about **supplier invoice processing** driven by EU e-invo
 ## 3. Customer & User
 
 ### Primary Customer
-Mid-sized accounting firms (50–2,000 SME clients) in Germany, Netherlands, and Belgium — markets where e-invoicing mandates are live or imminent.
+Mid-sized accounting firms (50–2,000 SME clients) in Germany, France, Netherlands, and Belgium — markets where e-invoicing mandates are live or imminent. Secondary: UK and international firms using Xero.
 
 ### Primary User
 The accountant or bookkeeper inside the firm who currently spends hours per week on manual invoice data entry.
@@ -90,12 +90,15 @@ Confidence >= threshold?
 
 | System | Market | Integration Type | Status |
 |--------|--------|-----------------|--------|
-| **DATEV** | Germany (90%+ market share) | Buchungsstapel EXTF export | Built |
+| **DATEV** | Germany (large firms, Steuerberater) | Buchungsstapel EXTF export | Built |
+| **Lexware** | Germany (SMEs, freelancers) | Buchungsdaten + Kreditoren text import | Built |
+| **FEC** | France (all firms — mandatory) | Fichier des Ecritures Comptables export | Built |
 | **Exact Online** | Netherlands, Belgium | REST API (OAuth2) | Built |
 | **Xero** | UK, Australia, NZ | REST API (OAuth2) | Built |
-| **Twinfield** | Netherlands | API | Planned |
-| **Yuki** | Netherlands | API | Planned |
-| **Octopus** | Belgium | API | Planned |
+| **Pennylane** | France (fast-growing) | REST API (OAuth2) | Stub — adapter ready, API not yet implemented |
+| **Moneybird** | Netherlands (freelancers, SMEs) | REST API (OAuth2) | Stub — adapter ready, API not yet implemented |
+| **Twinfield** | Netherlands (mid-market, Wolters Kluwer) | SOAP/XML API | Stub — adapter ready, API not yet implemented |
+| **Octopus** | Belgium (1 in 6 firms) | REST API (partner agreement) | Stub — adapter ready, API not yet implemented |
 
 ### 4.5 Rules Engine
 
@@ -137,6 +140,14 @@ Rules are set once and apply automatically to every future document. The system 
 - **Image invoice parsing** — Claude vision API for photographed/scanned invoices (JPEG, PNG, WebP, GIF)
 - **Credit note detection** — UBL root element + InvoiceTypeCode=381, documentType field on all invoices
 - **Duplicate invoice detection** — composite key dedup (invoiceNumber + clientId + currency + grossAmount)
+- **Lexware export** — Buchungsdaten (booking entries) + Kreditoren (supplier master data) export following official Lexware buchhalter import spec, with Steuerschlüssel mapping (7%/19% Vorsteuer, i.g.E.)
+- **FEC export** — Fichier des Ecritures Comptables, 18-column pipe-delimited export for French tax compliance. Double-entry: expense debit + TVA déductible + supplier credit. PCG account mapping.
+- **Pennylane adapter** — Stub ready for France's fastest-growing accounting platform (API not yet implemented)
+- **Moneybird adapter** — Stub ready for Dutch freelancer/SME market (API not yet implemented)
+- **Twinfield adapter** — Stub ready for Dutch mid-market / Wolters Kluwer (API not yet implemented)
+- **Octopus adapter** — Stub ready for Belgian market (API not yet implemented)
+- **Multi-country onboarding** — Accounting system selection organized by country (DE/FR/NL/BE/UK) with flag indicators
+- **Integrations landing page section** — Country-by-country integration cards with Live/Coming Soon status badges
 - **Authentication** — NextAuth.js v5 with email magic link (Resend), session-based auth, firm-scoped data access
 - **Route protection** — Middleware protects all /dashboard and /api routes, only webhooks are public
 - **Firm-scoped data isolation** — Every query, page, and API endpoint scoped to authenticated user's firm. No cross-firm data access.
@@ -217,7 +228,7 @@ Rules are set once and apply automatically to every future document. The system 
 | **Database** | SQLite (local) / Turso libsql (production) |
 | **ORM** | Prisma 5 with driver adapters |
 | **Hosting** | Vercel (serverless) |
-| **Accounting** | Adapter pattern — DATEV, Exact Online, Xero |
+| **Accounting** | Adapter pattern — 10 systems: DATEV, Lexware, FEC, Exact Online, Xero, Pennylane*, Moneybird*, Twinfield*, Octopus* (*stub) |
 | **Peppol** | Storecove (webhook) |
 | **Email** | Resend (outbound notifications + inbound webhook) |
 | **Email Ingestion** | Resend inbound webhook → parse attachments → process pipeline |
@@ -278,9 +289,14 @@ Invoice model includes `documentType` (INVOICE / CREDIT_NOTE) and confidence sco
 - [x] Duplicate invoice detection
 - [x] Authentication (magic link login, firm-scoped data, route protection)
 - [x] Fix: client creation flow on production
+- [x] Lexware buchhalter export (Buchungsdaten + Kreditoren)
+- [x] FEC export (French tax-compliant, 18-column pipe-delimited)
+- [x] Multi-country onboarding (DE/FR/NL/BE/UK system selection)
+- [x] Adapter stubs for Pennylane, Moneybird, Twinfield, Octopus
+- [x] Landing page: integrations section with country cards
 - [ ] Pre-production environment + end-to-end testing
 - [ ] Webhook signature validation (Resend inbound)
-- [ ] End-to-end test: onboard client → send invoice by email → see it processed → export DATEV
+- [ ] End-to-end test: onboard client → send invoice by email → see it processed → export DATEV/Lexware
 - [ ] German trial customer onboarded
 
 ### Phase 2: Deepen & Expand (Weeks 2–5)
@@ -296,7 +312,10 @@ Invoice model includes `documentType` (INVOICE / CREDIT_NOTE) and confidence sco
 
 - [ ] Rule learning from approved exceptions
 - [ ] Bulk exception handling
-- [ ] Twinfield + Yuki integration (covers remaining NL market)
+- [ ] Pennylane API integration (covers French cloud-native firms)
+- [ ] Moneybird API integration (covers Dutch freelancer/SME market)
+- [ ] Twinfield API integration (covers Dutch mid-market)
+- [ ] Octopus API integration (covers Belgian market)
 - [ ] Client self-service portal
 - [ ] Multi-currency support
 - [ ] Daily/weekly digest emails for firm managers
@@ -339,7 +358,21 @@ Invoice model includes `documentType` (INVOICE / CREDIT_NOTE) and confidence sco
 
 ---
 
-## 13. What Changed in v4
+## 13. What Changed in v5
+
+| Area | v4 (Previous) | v5 (Now) |
+|------|----------|----------|
+| **Accounting systems** | 3 (DATEV, Exact Online, Xero) | 10 — added Lexware, FEC, Pennylane*, Moneybird*, Twinfield*, Octopus* (*stub) |
+| **Lexware** | Not supported | Built — Buchungsdaten + Kreditoren export, Steuerschlüssel mapping |
+| **FEC (France)** | Not supported | Built — 18-column pipe-delimited export, double-entry PCG mapping |
+| **French market** | No coverage | FEC export unlocks all French firms; Pennylane stub ready |
+| **Belgian market** | Exact Online only | Added Octopus stub (1 in 6 Belgian firms) |
+| **Dutch market** | Exact Online only | Added Moneybird + Twinfield stubs |
+| **Onboarding** | 3 system choices | 10 systems organized by country with flags |
+| **Landing page** | No integrations section | Country-by-country integration cards with Live/Coming Soon badges |
+| **Target markets** | DE, NL, BE | DE, FR, NL, BE, UK |
+
+### What Changed in v4
 
 | Area | v3 (Previous) | v4 (Now) |
 |------|----------|----------|

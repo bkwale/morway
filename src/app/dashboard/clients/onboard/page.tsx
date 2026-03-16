@@ -13,9 +13,10 @@ const STEPS: { key: Step; label: string; number: number }[] = [
   { key: 'done', label: 'Ready', number: 4 },
 ]
 
-type AccountingSystem = 'NONE' | 'XERO' | 'EXACT_ONLINE' | 'DATEV' | 'LEXWARE'
+type AccountingSystem = 'NONE' | 'XERO' | 'EXACT_ONLINE' | 'DATEV' | 'LEXWARE' | 'FEC' | 'PENNYLANE' | 'MONEYBIRD' | 'TWINFIELD' | 'OCTOPUS'
 
 const ACCOUNTING_OPTIONS: { key: AccountingSystem; name: string; description: string; flag: string; regions: string }[] = [
+  // ── Germany ──
   {
     key: 'LEXWARE',
     name: 'Lexware buchhalter',
@@ -24,6 +25,29 @@ const ACCOUNTING_OPTIONS: { key: AccountingSystem; name: string; description: st
     regions: 'Germany (SMEs, freelancers)',
   },
   {
+    key: 'DATEV',
+    name: 'DATEV',
+    description: 'Export Buchungsstapel CSV. Import into DATEV.',
+    flag: '🇩🇪',
+    regions: 'Germany (Steuerberater)',
+  },
+  // ── France ──
+  {
+    key: 'FEC',
+    name: 'FEC (France)',
+    description: 'Export Fichier des Ecritures Comptables. Mandatory for French tax audits.',
+    flag: '🇫🇷',
+    regions: 'France (all companies)',
+  },
+  {
+    key: 'PENNYLANE',
+    name: 'Pennylane',
+    description: 'Connect via API. Auto-post bills directly. Coming soon.',
+    flag: '🇫🇷',
+    regions: 'France (SMEs, expert-comptables)',
+  },
+  // ── Netherlands ──
+  {
     key: 'EXACT_ONLINE',
     name: 'Exact Online',
     description: 'Connect via OAuth. Auto-post bills directly.',
@@ -31,12 +55,28 @@ const ACCOUNTING_OPTIONS: { key: AccountingSystem; name: string; description: st
     regions: 'Netherlands, Belgium, Germany',
   },
   {
-    key: 'DATEV',
-    name: 'DATEV',
-    description: 'Export Buchungsstapel CSV. Import into DATEV.',
-    flag: '🇩🇪',
-    regions: 'Germany (Steuerberater)',
+    key: 'MONEYBIRD',
+    name: 'Moneybird',
+    description: 'Connect via API. Auto-post purchase invoices. Coming soon.',
+    flag: '🇳🇱',
+    regions: 'Netherlands (freelancers, SMEs)',
   },
+  {
+    key: 'TWINFIELD',
+    name: 'Twinfield',
+    description: 'Connect via API. Auto-post transactions. Coming soon.',
+    flag: '🇳🇱',
+    regions: 'Netherlands (mid-market, accountants)',
+  },
+  // ── Belgium ──
+  {
+    key: 'OCTOPUS',
+    name: 'Octopus',
+    description: 'Connect via API. Auto-post purchase invoices. Coming soon.',
+    flag: '🇧🇪',
+    regions: 'Belgium (1 in 6 accounting firms)',
+  },
+  // ── UK / International ──
   {
     key: 'XERO',
     name: 'Xero',
@@ -175,17 +215,18 @@ function OnboardPage() {
         return
       }
 
-      if (selectedSystem === 'LEXWARE') {
-        // Lexware doesn't need OAuth — file-based export
+      // File-based exports and API stubs — save config and move on
+      const fileBasedSystems: AccountingSystem[] = ['LEXWARE', 'FEC', 'PENNYLANE', 'MONEYBIRD', 'TWINFIELD', 'OCTOPUS']
+      if (fileBasedSystems.includes(selectedSystem)) {
         const res = await fetch(`/api/clients/${clientId}`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            accountingSystem: 'LEXWARE',
+            accountingSystem: selectedSystem,
           }),
         })
 
-        if (!res.ok) throw new Error('Failed to save Lexware config')
+        if (!res.ok) throw new Error(`Failed to save ${selectedSystem} config`)
         setStep('rules')
         return
       }
@@ -273,6 +314,15 @@ function OnboardPage() {
         ['4210', 'Miete (rent)'],
         ['4520', 'Kfz-Kosten (vehicle costs)'],
         ['4910', 'Porto (postage)'],
+      ]
+    : (selectedSystem === 'FEC' || selectedSystem === 'PENNYLANE')
+    ? [
+        ['607000', 'Achats de marchandises (purchases)'],
+        ['606100', 'Fournitures non stockables (supplies)'],
+        ['613200', 'Locations immobilières (rent)'],
+        ['625100', 'Voyages et déplacements (travel)'],
+        ['626000', 'Frais postaux (postage)'],
+        ['615500', 'Entretien et réparations (maintenance)'],
       ]
     : [
         ['429', 'Software / IT'],
@@ -507,8 +557,8 @@ function OnboardPage() {
                 ? `Connect ${selectedSystem === 'XERO' ? 'Xero' : 'Exact Online'}`
                 : selectedSystem === 'DATEV'
                 ? 'Save DATEV Config'
-                : selectedSystem === 'LEXWARE'
-                ? 'Save Lexware Config'
+                : selectedSystem === 'LEXWARE' || selectedSystem === 'FEC' || selectedSystem === 'PENNYLANE' || selectedSystem === 'MONEYBIRD' || selectedSystem === 'TWINFIELD' || selectedSystem === 'OCTOPUS'
+                ? `Save ${selectedSystem === 'FEC' ? 'FEC' : selectedSystem.charAt(0) + selectedSystem.slice(1).toLowerCase()} Config`
                 : 'Continue'}
             </button>
             <button
@@ -588,7 +638,7 @@ function OnboardPage() {
 
           <div className="mt-8 p-4 bg-slate-50 rounded-xl">
             <p className="text-xs font-medium text-slate-500 mb-2">
-              {(selectedSystem === 'DATEV' || selectedSystem === 'LEXWARE') ? 'Common German account codes (SKR03):' : 'Common account codes:'}
+              {(selectedSystem === 'DATEV' || selectedSystem === 'LEXWARE') ? 'Common German account codes (SKR03):' : (selectedSystem === 'FEC' || selectedSystem === 'PENNYLANE') ? 'Common French account codes (PCG):' : 'Common account codes:'}
             </p>
             <div className="grid grid-cols-2 gap-1 text-xs text-slate-500">
               {accountCodeExamples.map(([code, label]) => (
@@ -614,6 +664,11 @@ function OnboardPage() {
             Client created{rulesCreated > 0 ? ` with ${rulesCreated} categorisation rule${rulesCreated !== 1 ? 's' : ''}` : ''}.
             {selectedSystem === 'DATEV' && ' DATEV export will be available once invoices are processed.'}
             {selectedSystem === 'LEXWARE' && ' Lexware export will be available once invoices are processed.'}
+            {selectedSystem === 'FEC' && ' FEC export will be available once invoices are processed.'}
+            {selectedSystem === 'PENNYLANE' && ' Pennylane API integration coming soon. FEC export available as fallback.'}
+            {selectedSystem === 'MONEYBIRD' && ' Moneybird API integration coming soon.'}
+            {selectedSystem === 'TWINFIELD' && ' Twinfield API integration coming soon.'}
+            {selectedSystem === 'OCTOPUS' && ' Octopus API integration coming soon.'}
             {selectedSystem === 'EXACT_ONLINE' && ' Approved invoices will auto-post to Exact Online.'}
             {selectedSystem === 'XERO' && ' Approved invoices will auto-post to Xero.'}
             {(!selectedSystem || selectedSystem === 'NONE') && ' Connect an accounting system later to enable auto-posting.'}
@@ -656,6 +711,9 @@ function OnboardPage() {
               )}
               {selectedSystem === 'LEXWARE' && (
                 <p>4. Export Kreditoren + Buchungen from the client dashboard and import into Lexware buchhalter</p>
+              )}
+              {selectedSystem === 'FEC' && (
+                <p>4. Download FEC export from the client dashboard for tax compliance</p>
               )}
             </div>
           </div>

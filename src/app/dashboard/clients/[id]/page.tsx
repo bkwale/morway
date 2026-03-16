@@ -145,6 +145,24 @@ export default async function ClientDetailPage({
               </Link>
             </>
           )}
+          {client.accountingSystem === 'FEC' && (
+            <>
+              <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200">
+                FEC (France)
+              </span>
+              <Link
+                href={`/api/export/fec?clientId=${client.id}`}
+                className="px-4 py-2 bg-blue-600 text-white text-xs font-medium rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                Export FEC
+              </Link>
+            </>
+          )}
+          {['PENNYLANE', 'MONEYBIRD', 'TWINFIELD', 'OCTOPUS'].includes(client.accountingSystem) && (
+            <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium bg-amber-50 text-amber-700 border border-amber-200">
+              {client.accountingSystem.charAt(0) + client.accountingSystem.slice(1).toLowerCase()} (coming soon)
+            </span>
+          )}
           {client.accountingSystem === 'NONE' && (
             <Link
               href={`/dashboard/clients/onboard?clientId=${client.id}&clientName=${encodeURIComponent(client.name)}`}
