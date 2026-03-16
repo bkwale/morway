@@ -30,7 +30,7 @@ export async function POST(req: NextRequest) {
     // ── SETUP MODE: Create firm + admin user + demo client ────────────
     if (mode === 'setup') {
       const firm = await db.firm.upsert({
-        where: { email: 'walt@morway.app' },
+        where: { id: firmId },
         create: {
           id: firmId,
           name: 'Morway Demo',
