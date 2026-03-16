@@ -2,7 +2,7 @@ import { db } from '@/lib/db'
 import { requireSession } from '@/lib/get-session'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
-import InvoiceActions from '@/components/dashboard/invoice-actions'
+import InvoiceDetailClient from '@/components/dashboard/invoice-detail-client'
 
 export const dynamic = 'force-dynamic'
 
@@ -97,13 +97,23 @@ export default async function InvoiceDetailPage({
         </div>
       </div>
 
-      {/* Action bar */}
-      <div className="mb-6">
-        <InvoiceActions invoiceId={invoice.id} status={invoice.status} />
-      </div>
+      {/* Action bar + editable line items (client component) */}
+      <InvoiceDetailClient
+        invoiceId={invoice.id}
+        status={invoice.status}
+        lineItems={invoice.lineItems.map((item) => ({
+          id: item.id,
+          description: item.description,
+          quantity: item.quantity,
+          unitPrice: item.unitPrice,
+          vatRate: item.vatRate,
+          lineTotal: item.lineTotal,
+          accountCode: item.accountCode,
+        }))}
+      />
 
-      <div className="grid grid-cols-3 gap-6">
-        {/* Left: Invoice details + line items (2 cols) */}
+      <div className="grid grid-cols-3 gap-6 mt-5">
+        {/* Left: Invoice details (2 cols) */}
         <div className="col-span-2 space-y-5">
           {/* Key info */}
           <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
@@ -172,47 +182,6 @@ export default async function InvoiceDetailPage({
               </div>
             </div>
           )}
-
-          {/* Line items */}
-          <div>
-            <h2 className="text-sm font-semibold text-slate-900 mb-3">Line Items</h2>
-            <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="bg-slate-50/60">
-                    <th className="text-left px-5 py-3 text-xs font-medium text-slate-500 uppercase tracking-wider">Description</th>
-                    <th className="text-right px-5 py-3 text-xs font-medium text-slate-500 uppercase tracking-wider">Qty</th>
-                    <th className="text-right px-5 py-3 text-xs font-medium text-slate-500 uppercase tracking-wider">Unit Price</th>
-                    <th className="text-right px-5 py-3 text-xs font-medium text-slate-500 uppercase tracking-wider">VAT %</th>
-                    <th className="text-right px-5 py-3 text-xs font-medium text-slate-500 uppercase tracking-wider">Total</th>
-                    <th className="text-left px-5 py-3 text-xs font-medium text-slate-500 uppercase tracking-wider">Account</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100">
-                  {invoice.lineItems.map((item) => (
-                    <tr key={item.id} className="hover:bg-slate-50/50">
-                      <td className="px-5 py-3 text-slate-900">{item.description}</td>
-                      <td className="px-5 py-3 text-right text-slate-600 tabular-nums">{item.quantity}</td>
-                      <td className="px-5 py-3 text-right text-slate-600 tabular-nums">{item.unitPrice.toFixed(2)}</td>
-                      <td className="px-5 py-3 text-right text-slate-600 tabular-nums">{item.vatRate}%</td>
-                      <td className="px-5 py-3 text-right font-medium text-slate-900 tabular-nums">{item.lineTotal.toFixed(2)}</td>
-                      <td className="px-5 py-3">
-                        {item.accountCode ? (
-                          <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-mono font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">
-                            {item.accountCode}
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-medium bg-amber-50 text-amber-700 border border-amber-200">
-                            Unmatched
-                          </span>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
         </div>
 
         {/* Right: Timeline (1 col) */}
