@@ -27,6 +27,53 @@ export async function POST(req: NextRequest) {
   const mode = req.nextUrl.searchParams.get('mode') ?? 'full'
 
   try {
+    // ── SETUP MODE: Create firm + admin user + demo client ────────────
+    if (mode === 'setup') {
+      const firm = await db.firm.upsert({
+        where: { email: 'walt@morway.app' },
+        create: {
+          id: firmId,
+          name: 'Morway Demo',
+          email: 'walt@morway.app',
+          plan: 'STARTER',
+        },
+        update: {},
+      })
+
+      const user = await db.user.upsert({
+        where: { email: 'walt@morway.app' },
+        create: {
+          firmId: firm.id,
+          email: 'walt@morway.app',
+          name: 'Walt',
+          role: 'ADMIN',
+        },
+        update: {},
+      })
+
+      // Create a demo client for the firm (FEC / France)
+      const demoClient = await db.client.upsert({
+        where: { id: `demo-client-${firmId}` },
+        create: {
+          id: `demo-client-${firmId}`,
+          firmId: firm.id,
+          name: 'Fiteco Demo Client',
+          accountingSystem: 'FEC',
+          active: true,
+        },
+        update: {},
+      })
+
+      return NextResponse.json({
+        success: true,
+        mode: 'setup',
+        firm: { id: firm.id, name: firm.name },
+        user: { id: user.id, email: user.email, role: user.role },
+        client: { id: demoClient.id, name: demoClient.name },
+        next: 'Sign in with walt@morway.app',
+      })
+    }
+
     // Find the first client with Xero connected
     const client = await db.client.findFirst({
       where: { firmId, xeroConnected: true },

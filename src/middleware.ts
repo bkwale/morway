@@ -14,7 +14,7 @@ export default auth((req) => {
   }
 
   // Protect API routes (except auth, webhooks, and inbound email)
-  if (pathname.startsWith('/api/') && !pathname.startsWith('/api/auth/') && !pathname.startsWith('/api/email/') && !pathname.startsWith('/api/xero/callback') && !pathname.startsWith('/api/exact-online/callback')) {
+  if (pathname.startsWith('/api/') && !pathname.startsWith('/api/auth/') && !pathname.startsWith('/api/email/') && !pathname.startsWith('/api/xero/callback') && !pathname.startsWith('/api/exact-online/callback') && !pathname.startsWith('/api/dev/')) {
     if (!req.auth?.user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }

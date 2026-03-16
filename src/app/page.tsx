@@ -119,20 +119,26 @@ export default function LandingPage() {
       </section>
 
       {/* Pricing */}
-      <section className="max-w-4xl mx-auto px-8 py-20 text-center">
-        <h2 className="text-2xl font-bold text-slate-900 mb-3">Simple Pricing</h2>
-        <p className="text-slate-500 mb-8">Per client, per month. No setup fees. Cancel anytime.</p>
+      <section id="pricing" className="max-w-5xl mx-auto px-8 py-20">
+        <div className="text-center mb-12">
+          <h2 className="text-2xl font-bold text-slate-900 mb-3">Pricing That Scales With You</h2>
+          <p className="text-slate-500 max-w-lg mx-auto">
+            Per client, per month. No setup fees. Cancel anytime. Your firm saves 10-15x what you pay.
+          </p>
+        </div>
 
-        <div className="flex justify-center gap-8 mb-8">
-          {/* Core */}
-          <div className="border border-slate-200 rounded-xl p-8 max-w-xs text-left">
-            <p className="text-xs font-medium text-emerald-600 uppercase tracking-wider mb-2">Core</p>
-            <h3 className="text-lg font-bold text-slate-900 mb-1">Invoice Automation</h3>
-            <div className="flex items-baseline gap-1 mb-3">
-              <span className="text-4xl font-bold text-slate-900">€3-5</span>
+        {/* Tiers */}
+        <div className="grid grid-cols-3 gap-6 mb-10">
+          {/* Starter */}
+          <div className="border border-slate-200 rounded-xl p-8 text-left flex flex-col">
+            <p className="text-xs font-medium text-slate-400 uppercase tracking-wider mb-2">Starter</p>
+            <h3 className="text-lg font-bold text-slate-900 mb-1">Small Portfolios</h3>
+            <div className="flex items-baseline gap-1 mb-1">
+              <span className="text-4xl font-bold text-slate-900">€19</span>
               <span className="text-slate-400 text-sm">/client/month</span>
             </div>
-            <ul className="text-sm text-slate-500 space-y-2">
+            <p className="text-xs text-slate-400 mb-5">Up to 50 invoices/month per client</p>
+            <ul className="text-sm text-slate-500 space-y-2.5 flex-1">
               <li className="flex items-start gap-2">
                 <span className="text-emerald-500 mt-0.5">✓</span>
                 Email &amp; PDF invoice parsing
@@ -154,34 +160,118 @@ export default function LandingPage() {
                 Email notifications
               </li>
             </ul>
+            <div className="mt-6 pt-4 border-t border-slate-100">
+              <p className="text-xs text-slate-400">Effective cost: ~€0.38/invoice</p>
+            </div>
           </div>
 
-          {/* Add-on */}
-          <div className="border border-amber-200 bg-amber-50/50 rounded-xl p-8 max-w-xs text-left">
-            <p className="text-xs font-medium text-amber-600 uppercase tracking-wider mb-2">Add-on</p>
-            <h3 className="text-lg font-bold text-slate-900 mb-1">Peppol e-Invoice Reception</h3>
-            <p className="text-sm text-slate-500 mb-3">For firms needing EU mandate compliance</p>
-            <ul className="text-sm text-slate-500 space-y-2">
+          {/* Pro — highlighted */}
+          <div className="border-2 border-emerald-500 rounded-xl p-8 text-left flex flex-col relative">
+            <div className="absolute -top-3 left-1/2 -translate-x-1/2">
+              <span className="bg-emerald-500 text-white text-[10px] font-bold uppercase tracking-wider px-3 py-1 rounded-full">
+                Most Popular
+              </span>
+            </div>
+            <p className="text-xs font-medium text-emerald-600 uppercase tracking-wider mb-2">Pro</p>
+            <h3 className="text-lg font-bold text-slate-900 mb-1">Growing Firms</h3>
+            <div className="flex items-baseline gap-1 mb-1">
+              <span className="text-4xl font-bold text-slate-900">€29</span>
+              <span className="text-slate-400 text-sm">/client/month</span>
+            </div>
+            <p className="text-xs text-slate-400 mb-5">Up to 150 invoices/month per client</p>
+            <ul className="text-sm text-slate-500 space-y-2.5 flex-1">
               <li className="flex items-start gap-2">
-                <span className="text-amber-500 mt-0.5">✓</span>
-                Receive structured e-invoices via Peppol
+                <span className="text-emerald-500 mt-0.5">✓</span>
+                Everything in Starter
               </li>
               <li className="flex items-start gap-2">
-                <span className="text-amber-500 mt-0.5">✓</span>
-                UBL XML auto-parsing
+                <span className="text-emerald-500 mt-0.5">✓</span>
+                Peppol e-invoice reception
               </li>
               <li className="flex items-start gap-2">
-                <span className="text-amber-500 mt-0.5">✓</span>
+                <span className="text-emerald-500 mt-0.5">✓</span>
+                UBL &amp; Factur-X auto-parsing
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-emerald-500 mt-0.5">✓</span>
                 EU e-invoicing mandate ready
               </li>
+              <li className="flex items-start gap-2">
+                <span className="text-emerald-500 mt-0.5">✓</span>
+                Priority exception handling
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-emerald-500 mt-0.5">✓</span>
+                Audit trail &amp; compliance reports
+              </li>
             </ul>
+            <div className="mt-6 pt-4 border-t border-emerald-100">
+              <p className="text-xs text-emerald-600 font-medium">Effective cost: ~€0.19/invoice</p>
+            </div>
+          </div>
+
+          {/* Enterprise */}
+          <div className="border border-slate-200 rounded-xl p-8 text-left flex flex-col bg-slate-50/50">
+            <p className="text-xs font-medium text-slate-400 uppercase tracking-wider mb-2">Enterprise</p>
+            <h3 className="text-lg font-bold text-slate-900 mb-1">Large Practices</h3>
+            <div className="flex items-baseline gap-1 mb-1">
+              <span className="text-4xl font-bold text-slate-900">Custom</span>
+            </div>
+            <p className="text-xs text-slate-400 mb-5">500+ clients, volume pricing</p>
+            <ul className="text-sm text-slate-500 space-y-2.5 flex-1">
+              <li className="flex items-start gap-2">
+                <span className="text-emerald-500 mt-0.5">✓</span>
+                Everything in Pro
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-emerald-500 mt-0.5">✓</span>
+                Volume discounts from €15/client
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-emerald-500 mt-0.5">✓</span>
+                Unlimited invoices per client
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-emerald-500 mt-0.5">✓</span>
+                Dedicated onboarding &amp; support
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-emerald-500 mt-0.5">✓</span>
+                Custom accounting system integrations
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-emerald-500 mt-0.5">✓</span>
+                SLA &amp; data residency options
+              </li>
+            </ul>
+            <div className="mt-6 pt-4 border-t border-slate-100">
+              <a href="mailto:walt@morway.app" className="text-sm font-medium text-slate-900 hover:text-emerald-600 transition-colors">
+                Talk to us →
+              </a>
+            </div>
           </div>
         </div>
 
-        <p className="text-sm text-slate-400 max-w-md mx-auto">
-          Charged to the accounting firm, not the end client. A firm with 500 clients saves 40+ hours/month
-          at less than €0.20 per invoice processed.
-        </p>
+        {/* ROI callout */}
+        <div className="bg-slate-900 rounded-xl p-8 text-center">
+          <div className="grid grid-cols-3 gap-8">
+            <div>
+              <p className="text-3xl font-bold text-white">€300+</p>
+              <p className="text-sm text-slate-400 mt-1">monthly cost of manual entry per client</p>
+            </div>
+            <div>
+              <p className="text-3xl font-bold text-emerald-400">€29</p>
+              <p className="text-sm text-slate-400 mt-1">with Morway Pro</p>
+            </div>
+            <div>
+              <p className="text-3xl font-bold text-white">10x</p>
+              <p className="text-sm text-slate-400 mt-1">return on investment</p>
+            </div>
+          </div>
+          <p className="text-xs text-slate-500 mt-6">
+            Based on 67 invoices/month at 15 min manual entry each, at a blended rate of €18/hour.
+          </p>
+        </div>
       </section>
 
       {/* Integrations */}
