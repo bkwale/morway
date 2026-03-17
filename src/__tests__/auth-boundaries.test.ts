@@ -151,6 +151,7 @@ const CLIENT_SIDE_PAGES = [
   'app/dashboard/rules/page.tsx', // Client component, fetches from /api
   'app/dashboard/clients/new/page.tsx', // Client component
   'app/dashboard/clients/onboard/page.tsx', // Client component
+  'app/dashboard/settings/team/page.tsx', // Client component, fetches from /api/team/invite
 ]
 
 function isClientSidePage(filePath: string): boolean {

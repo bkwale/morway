@@ -1,11 +1,17 @@
 import { NextResponse } from 'next/server'
 import { db } from '@/lib/db'
+import { getSessionOrNull } from '@/lib/get-session'
 
 /**
  * GET /api/dev/diagnose
  * Tests each piece of the auth flow independently to find what's broken.
+ * Requires an authenticated ADMIN session — exposes sensitive env/DB info.
  */
 export async function GET() {
+  const session = await getSessionOrNull()
+  if (!session?.user) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
   const results: Record<string, any> = {}
 
   // 1. Check env vars
