@@ -18,7 +18,7 @@ export async function GET() {
       client: { firmId },
     },
     include: {
-      client: { select: { name: true } },
+      client: { select: { id: true, name: true } },
       supplier: { select: { name: true } },
       exception: { select: { reason: true } },
       lineItems: true,

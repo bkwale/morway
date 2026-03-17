@@ -116,6 +116,19 @@ export default async function InvoiceDetailPage({
         paidAmount={invoice.paidAmount}
         linkedInvoiceId={invoice.linkedInvoiceId}
         documentType={invoice.documentType}
+        vatBreakdown={(() => {
+          const map = new Map<number, { taxableAmount: number; vatAmount: number }>()
+          for (const item of invoice.lineItems) {
+            const rate = item.vatRate
+            const existing = map.get(rate) ?? { taxableAmount: 0, vatAmount: 0 }
+            existing.taxableAmount += item.lineTotal
+            existing.vatAmount += item.lineTotal * (rate / 100)
+            map.set(rate, existing)
+          }
+          return Array.from(map.entries())
+            .map(([rate, { taxableAmount, vatAmount }]) => ({ rate, taxableAmount, vatAmount }))
+            .sort((a, b) => b.rate - a.rate)
+        })()}
         lineItems={invoice.lineItems.map((item) => ({
           id: item.id,
           description: item.description,

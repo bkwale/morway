@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
 
 interface ExceptionInvoice {
   id: string
@@ -10,8 +10,13 @@ interface ExceptionInvoice {
   grossAmount: number
   confidenceScore: number
   supplier: { name: string } | null
-  client: { name: string }
+  client: { id: string; name: string }
   exception: { reason: string } | null
+  supplierVatNumber?: string | null
+  buyerVatNumber?: string | null
+  reverseCharge?: boolean
+  vatExemptionReason?: string | null
+  documentType?: string
   lineItems: Array<{
     id: string
     description: string
@@ -20,7 +25,115 @@ interface ExceptionInvoice {
     vatRate: number
     lineTotal: number
     accountCode: string | null
+    vatExemptionReason?: string | null
   }>
+}
+
+interface AccountCodeSuggestion {
+  code: string
+  label: string
+  source: 'learned' | 'reference'
+  keyword?: string
+}
+
+function AccountCodeAutocomplete({
+  value,
+  onChange,
+  clientId,
+  hasCode,
+}: {
+  value: string
+  onChange: (val: string) => void
+  clientId: string
+  hasCode: boolean
+}) {
+  const [query, setQuery] = useState(value)
+  const [suggestions, setSuggestions] = useState<AccountCodeSuggestion[]>([])
+  const [open, setOpen] = useState(false)
+  const [debounceTimer, setDebounceTimer] = useState<ReturnType<typeof setTimeout> | null>(null)
+  const wrapperRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    setQuery(value)
+  }, [value])
+
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (wrapperRef.current && !wrapperRef.current.contains(e.target as Node)) {
+        setOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
+
+  function handleInput(val: string) {
+    setQuery(val)
+    onChange(val)
+
+    if (debounceTimer) clearTimeout(debounceTimer)
+
+    if (val.length < 2) {
+      setSuggestions([])
+      setOpen(false)
+      return
+    }
+
+    const timer = setTimeout(async () => {
+      try {
+        const res = await fetch(`/api/account-codes?clientId=${clientId}&q=${encodeURIComponent(val)}`)
+        if (res.ok) {
+          const data = await res.json()
+          setSuggestions(data)
+          setOpen(data.length > 0)
+        }
+      } catch {
+        // silent
+      }
+    }, 250)
+    setDebounceTimer(timer)
+  }
+
+  function selectSuggestion(s: AccountCodeSuggestion) {
+    setQuery(s.code)
+    onChange(s.code)
+    setOpen(false)
+  }
+
+  return (
+    <div ref={wrapperRef} className="relative">
+      <input
+        type="text"
+        value={query}
+        onChange={(e) => handleInput(e.target.value)}
+        onFocus={() => { if (suggestions.length > 0) setOpen(true) }}
+        placeholder="e.g. 4530"
+        className={`w-full text-sm bg-white text-slate-900 border rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-slate-900 focus:border-transparent placeholder:text-slate-400 ${
+          hasCode ? 'border-emerald-200' : 'border-amber-300'
+        }`}
+      />
+      {open && suggestions.length > 0 && (
+        <div className="absolute z-20 top-full left-0 right-0 mt-1 bg-white border border-slate-200 rounded-lg shadow-lg max-h-48 overflow-auto">
+          {suggestions.map((s, i) => (
+            <button
+              key={`${s.code}-${i}`}
+              type="button"
+              onClick={() => selectSuggestion(s)}
+              className="w-full text-left px-3 py-2 text-sm hover:bg-slate-50 flex items-center justify-between gap-2 border-b border-slate-50 last:border-0"
+            >
+              <span className="flex items-center gap-2 min-w-0">
+                <span className="font-mono font-medium text-slate-900">{s.code}</span>
+                <span className="text-slate-500 truncate">{s.label}</span>
+              </span>
+              {s.source === 'learned' && (
+                <span className="shrink-0 text-[10px] font-medium bg-violet-50 text-violet-600 px-1.5 py-0.5 rounded">learned</span>
+              )}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  )
 }
 
 export default function ExceptionsPage() {
@@ -424,6 +537,37 @@ export default function ExceptionsPage() {
               </div>
             </div>
 
+            {/* VAT info bar */}
+            {(selected.reverseCharge || selected.vatExemptionReason || selected.supplierVatNumber || selected.documentType === 'CREDIT_NOTE') && (
+              <div className="flex flex-wrap gap-2 mb-4">
+                {selected.reverseCharge && (
+                  <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-indigo-50 text-indigo-700 border border-indigo-200">
+                    Reverse Charge §13b
+                  </span>
+                )}
+                {selected.vatExemptionReason && (
+                  <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200">
+                    {selected.vatExemptionReason.replace(/_/g, ' ')}
+                  </span>
+                )}
+                {selected.documentType === 'CREDIT_NOTE' && (
+                  <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-orange-50 text-orange-700 border border-orange-200">
+                    Credit Note
+                  </span>
+                )}
+                {selected.supplierVatNumber && (
+                  <span className="text-xs text-slate-500">
+                    Supplier: <span className="font-mono">{selected.supplierVatNumber}</span>
+                  </span>
+                )}
+                {selected.buyerVatNumber && (
+                  <span className="text-xs text-slate-500">
+                    Buyer: <span className="font-mono">{selected.buyerVatNumber}</span>
+                  </span>
+                )}
+              </div>
+            )}
+
             {/* Flag reason */}
             <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 mb-5">
               <div className="flex items-start gap-2">
@@ -462,16 +606,13 @@ export default function ExceptionsPage() {
                       {item.lineTotal.toFixed(2)}
                     </span>
                     <div className="col-span-5">
-                      <input
-                        type="text"
+                      <AccountCodeAutocomplete
                         value={overrides[item.id] ?? ''}
-                        onChange={(e) =>
-                          setOverrides((prev) => ({ ...prev, [item.id]: e.target.value }))
+                        onChange={(val) =>
+                          setOverrides((prev) => ({ ...prev, [item.id]: val }))
                         }
-                        placeholder="e.g. 429"
-                        className={`w-full text-sm bg-white text-slate-900 border rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-slate-900 focus:border-transparent placeholder:text-slate-400 ${
-                          hasCode ? 'border-emerald-200' : 'border-amber-300'
-                        }`}
+                        clientId={selected.client.id}
+                        hasCode={hasCode}
                       />
                     </div>
                   </div>

@@ -2,8 +2,8 @@
 
 **Status:** MVP Built · Auth Live · 10 Accounting Systems · Seeking First Trial Customer
 **Live URL:** morway.app
-**Version:** 5.0
-**Date:** 16 March 2026
+**Version:** 6.0
+**Date:** 17 March 2026
 **Author:** Walt Koleosho
 
 ---
@@ -152,13 +152,21 @@ Rules are set once and apply automatically to every future document. The system 
 - **Route protection** — Middleware protects all /dashboard and /api routes, only webhooks are public
 - **Firm-scoped data isolation** — Every query, page, and API endpoint scoped to authenticated user's firm. No cross-firm data access.
 - **Login page** — Magic link sign-in, check-email confirmation, error handling for unknown accounts
+- **VAT compliance** — Reverse charge detection (§13b UStG) via cross-border USt-IdNr. analysis, VAT exemption tracking (REVERSE_CHARGE, INTRA_COMMUNITY, EXPORT, EXEMPT_MEDICAL, EXEMPT_EDUCATION, EXEMPT_FINANCIAL, SMALL_BUSINESS), VAT breakdown by rate. BU-Schlüssel 94 in DATEV/Lexware exports, autoliquidation entries (445660/445200) in FEC export.
+- **Payment tracking** — Record partial or full payments per invoice. Status: UNPAID → PARTIALLY_PAID → PAID. Audit-logged.
+- **Rule learning from approvals** — When accountant approves an exception, system auto-creates supplier-specific rules from line item keywords + account codes. Priority 10 (highest). Deduplication built in.
+- **Account code autocomplete** — Merges learned codes (from rules engine, accountant-confirmed) with reference codes (from chart of accounts). Learned codes shown first. Endpoint: `/api/account-codes`.
+- **Credit note linking** — Credit notes linked to original invoice via `linkedInvoiceId`. Detected from UBL BillingReference or AI extraction. Audit-logged.
+- **Chart-of-accounts context injection** — Full list of valid account codes for client's system + country passed to AI extraction prompt. Improves suggestion accuracy.
+- **DOCX invoice parsing** — Word document invoices parsed via mammoth text extraction + AI.
+- **Spreadsheet invoice parsing** — XLSX/XLS/CSV invoices parsed via SheetJS + AI.
+- **Supplier enrichment** — Supplier address and country auto-populated from invoice data. Country inferred from USt-IdNr. prefix.
 
 ### 5.2 Not Built — Critical Path
 
 | Feature | Why It Matters | Priority |
 |---------|---------------|----------|
 | **Manual upload UI** | Fallback for invoices that don't arrive by email | P1 |
-| **Rule learning from approvals** | Each exception approval should auto-suggest a new rule | P1 |
 | **Webhook signature validation** | Resend inbound webhook should verify signatures to prevent spoofed invoices | P1 |
 | **Rate limiting** | API and webhook endpoints need rate limiting to prevent abuse | P1 |
 | **Data retention policy** | GDPR requires defined retention periods. Raw invoice data stored indefinitely today. | P1 |
@@ -248,19 +256,23 @@ Invoice model includes `documentType` (INVOICE / CREDIT_NOTE) and confidence sco
 
 ## 8. Business Model
 
+| Tier | Price | Includes |
+|------|-------|----------|
+| **Starter** | €19/client/month | Up to 50 invoices/month per client. Email & PDF parsing, auto-categorisation, exception dashboard, email notifications. Effective cost: ~€0.38/invoice. |
+| **Pro** | €29/client/month | Up to 150 invoices/month per client. Everything in Starter + Peppol e-invoice reception, UBL & Factur-X parsing, EU mandate ready, audit trail & compliance reports. Effective cost: ~€0.19/invoice. |
+| **Enterprise** | Custom (from €15/client) | 500+ clients. Unlimited invoices, dedicated onboarding, custom integrations, SLA & data residency options. |
+
 | Metric | Value |
 |--------|-------|
-| **Pricing** | €3–5 per client/month |
 | **Charged to** | The accounting firm |
-| **Example** | Firm with 500 clients = €1,500–2,500/month |
-| **Cost per document** | < €0.20 |
-| **Value delivered** | 5 min saved per document, 40+ hours/month for a 500-client firm |
-| **Breakeven** | At €80/hr accountant cost, pays for itself at ~20 clients |
+| **Example** | Firm with 200 clients on Pro = €5,800/month |
+| **ROI** | Manual entry costs ~€300+/client/month (67 invoices × 15 min × €18/hr). Morway Pro at €29 = 10x return. |
+| **No setup fees** | Cancel anytime |
 
 ### Future expansion pricing
 
-- Commission & expense module (Phase 2): +€2/client/month
-- Tax declaration export: +€1/client/month
+- Commission & expense module (Phase 2): +€5/client/month
+- Tax declaration export: +€3/client/month
 
 ---
 
@@ -302,7 +314,7 @@ Invoice model includes `documentType` (INVOICE / CREDIT_NOTE) and confidence sco
 ### Phase 2: Deepen & Expand (Weeks 2–5)
 
 - [ ] Manual invoice upload UI
-- [ ] Rule learning from approved exceptions
+- [x] Rule learning from approved exceptions
 - [ ] Rate limiting on API/webhook endpoints
 - [ ] GDPR data retention policy + erasure endpoint
 - [ ] Email notification when invoice is processed
@@ -310,7 +322,6 @@ Invoice model includes `documentType` (INVOICE / CREDIT_NOTE) and confidence sco
 
 ### Phase 3: Growth (Months 2–4)
 
-- [ ] Rule learning from approved exceptions
 - [ ] Bulk exception handling
 - [ ] Pennylane API integration (covers French cloud-native firms)
 - [ ] Moneybird API integration (covers Dutch freelancer/SME market)
@@ -358,7 +369,22 @@ Invoice model includes `documentType` (INVOICE / CREDIT_NOTE) and confidence sco
 
 ---
 
-## 13. What Changed in v5
+## 13. What Changed in v6
+
+| Area | v5 (Previous) | v6 (Now) |
+|------|----------|----------|
+| **VAT compliance** | Not built | Built — §13b reverse charge detection, VAT exemption tracking, VAT breakdown by rate, BU-Schlüssel 94 in DATEV/Lexware, autoliquidation in FEC |
+| **Payment tracking** | Not built | Built — partial/full payments, UNPAID → PARTIALLY_PAID → PAID, audit-logged |
+| **Rule learning** | Listed as P1 not-built | Built — auto-creates supplier-specific rules from approved exceptions |
+| **Account code autocomplete** | Not built | Built — merges learned (accountant-confirmed) + reference codes |
+| **Credit note linking** | Detection only | Built — links credit notes to original invoices via linkedInvoiceId |
+| **Chart-of-accounts context** | Not built | Built — injected into AI extraction prompt for better suggestions |
+| **DOCX/spreadsheet parsing** | Not built | Built — mammoth + SheetJS for Word/Excel/CSV invoices |
+| **Supplier enrichment** | Not built | Built — address + country auto-populated from invoices |
+| **Pricing** | €3–5/client/month | Tiered: Starter €19, Pro €29, Enterprise from €15 |
+| **Version** | v5 | v6 |
+
+### What Changed in v5
 
 | Area | v4 (Previous) | v5 (Now) |
 |------|----------|----------|

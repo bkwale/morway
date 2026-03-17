@@ -248,6 +248,11 @@ export default function RulesPage() {
                     <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-medium border ${getScopeStyle(rule)}`}>
                       {getScopeLabel(rule)}
                     </span>
+                    {rule.supplierId && rule.priority === 10 && (
+                      <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-medium bg-violet-50 text-violet-600 border border-violet-200">
+                        Auto-learned
+                      </span>
+                    )}
                     <span className="text-xs text-slate-400">
                       Created {new Date(rule.createdAt).toLocaleDateString('en-GB')}
                     </span>

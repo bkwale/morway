@@ -104,6 +104,10 @@ const ACTION_LABELS: Record<string, string> = {
   EXCEPTION_APPROVED: 'Exception approved',
   EXCEPTION_REJECTED: 'Exception rejected',
   PAYMENT_MATCHED: 'Payment matched',
+  PAYMENT_RECORDED: 'Payment recorded',
+  CREDIT_NOTE_LINKED: 'Credit note linked',
+  REVERSE_CHARGE_DETECTED: 'Reverse charge detected',
+  RULE_LEARNED: 'Rule auto-learned',
   FAILED: 'Processing failed',
 }
 
@@ -118,6 +122,10 @@ const ACTION_COLORS: Record<string, string> = {
   EXCEPTION_APPROVED: 'bg-emerald-500',
   EXCEPTION_REJECTED: 'bg-red-400',
   PAYMENT_MATCHED: 'bg-emerald-500',
+  PAYMENT_RECORDED: 'bg-emerald-400',
+  CREDIT_NOTE_LINKED: 'bg-orange-400',
+  REVERSE_CHARGE_DETECTED: 'bg-indigo-400',
+  RULE_LEARNED: 'bg-violet-400',
   FAILED: 'bg-red-500',
 }
 
