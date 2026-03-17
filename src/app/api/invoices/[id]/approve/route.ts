@@ -165,6 +165,66 @@ export async function POST(
 
   await db.$transaction(txOps)
 
+  // ── AUTO-LEARN: Create rules from approved line items ─────────────────
+  // When an accountant approves with account codes, learn those patterns
+  // for future auto-matching. Only learn from items the accountant touched
+  // or confirmed (has an account code after approval).
+  try {
+    const approvedLineItems = await db.lineItem.findMany({ where: { invoiceId } })
+
+    for (const item of approvedLineItems) {
+      if (!item.accountCode || !item.description) continue
+
+      // Extract keyword from description (first 3+ character word, lowercased)
+      const words = item.description.toLowerCase().split(/\s+/).filter((w) => w.length >= 3)
+      const keyword = words[0] ?? null
+
+      if (!keyword) continue
+
+      // Check if a rule already exists for this keyword + supplier
+      const existingRule = await db.rule.findFirst({
+        where: {
+          firmId: session.user.firmId,
+          keyword,
+          supplierId: invoice.supplierId,
+          accountCode: item.accountCode,
+        },
+      })
+
+      if (existingRule) continue // Already learned
+
+      // Create a supplier-specific rule (highest priority in hierarchy)
+      await db.rule.create({
+        data: {
+          firmId: session.user.firmId,
+          clientId: invoice.clientId,
+          supplierId: invoice.supplierId,
+          keyword,
+          accountCode: item.accountCode,
+          vatRate: item.vatRate,
+          priority: 10, // Supplier-specific = high priority
+          active: true,
+        },
+      })
+
+      await db.auditLog.create({
+        data: {
+          invoiceId,
+          action: AUDIT_ACTION.RULE_LEARNED,
+          detail: JSON.stringify({
+            keyword,
+            accountCode: item.accountCode,
+            supplierId: invoice.supplierId,
+            lineItemDescription: item.description,
+          }),
+        },
+      })
+    }
+  } catch (err) {
+    // Don't block the approval response if rule learning fails
+    console.warn('[approve] Auto-learn rules failed:', err instanceof Error ? err.message : err)
+  }
+
   return NextResponse.json({
     success: true,
     externalId,

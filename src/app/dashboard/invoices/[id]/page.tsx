@@ -46,6 +46,10 @@ const AUDIT_DOTS: Record<string, string> = {
   EXCEPTION_REJECTED: 'bg-red-400',
   FAILED: 'bg-red-500',
   DELETED: 'bg-slate-400',
+  PAYMENT_RECORDED: 'bg-emerald-400',
+  CREDIT_NOTE_LINKED: 'bg-orange-400',
+  REVERSE_CHARGE_DETECTED: 'bg-indigo-400',
+  RULE_LEARNED: 'bg-violet-400',
 }
 
 export default async function InvoiceDetailPage({
@@ -100,7 +104,18 @@ export default async function InvoiceDetailPage({
       {/* Action bar + editable line items (client component) */}
       <InvoiceDetailClient
         invoiceId={invoice.id}
+        clientId={invoice.clientId}
         status={invoice.status}
+        currency={invoice.currency}
+        grossAmount={invoice.grossAmount}
+        supplierVatNumber={invoice.supplierVatNumber}
+        buyerVatNumber={invoice.buyerVatNumber}
+        reverseCharge={invoice.reverseCharge}
+        vatExemptionReason={invoice.vatExemptionReason}
+        paymentStatus={invoice.paymentStatus}
+        paidAmount={invoice.paidAmount}
+        linkedInvoiceId={invoice.linkedInvoiceId}
+        documentType={invoice.documentType}
         lineItems={invoice.lineItems.map((item) => ({
           id: item.id,
           description: item.description,
@@ -109,6 +124,7 @@ export default async function InvoiceDetailPage({
           vatRate: item.vatRate,
           lineTotal: item.lineTotal,
           accountCode: item.accountCode,
+          vatExemptionReason: item.vatExemptionReason,
         }))}
       />
 

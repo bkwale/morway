@@ -209,6 +209,57 @@ export async function generateFECExport(options: FECExportOptions): Promise<{
           '',
         ].join('|'))
       }
+
+      // Reverse charge (autoliquidation): buyer self-assesses VAT
+      // Debit 4456 (TVA déductible intra-communautaire) + Credit 4452 (TVA due intra-communautaire)
+      if (invoice.reverseCharge && netAmount > 0) {
+        const reverseVatRate = line.vatRate > 0 ? line.vatRate : 20  // Default to 20% French standard rate
+        const reverseVatAmount = Math.round(netAmount * reverseVatRate / 100 * 100) / 100
+
+        // Debit: 4456 — TVA déductible intra-communautaire
+        rows.push([
+          'ACH',
+          'Journal des achats',
+          entryNumStr,
+          invoiceDate,
+          '445660',
+          'TVA deductible intra-communautaire',
+          '',
+          '',
+          escapeField(invoiceRef),
+          invoiceDate,
+          escapeField(`Autoliquidation TVA - ${supplierName}`.slice(0, 100)),
+          formatAmount(reverseVatAmount),
+          '0,00',
+          '',
+          '',
+          today,
+          '',
+          '',
+        ].join('|'))
+
+        // Credit: 4452 — TVA due intra-communautaire
+        rows.push([
+          'ACH',
+          'Journal des achats',
+          entryNumStr,
+          invoiceDate,
+          '445200',
+          'TVA due intra-communautaire',
+          '',
+          '',
+          escapeField(invoiceRef),
+          invoiceDate,
+          escapeField(`Autoliquidation TVA - ${supplierName}`.slice(0, 100)),
+          '0,00',
+          formatAmount(reverseVatAmount),
+          '',
+          '',
+          today,
+          '',
+          '',
+        ].join('|'))
+      }
     }
 
     // Credit: Supplier account (gross amount)

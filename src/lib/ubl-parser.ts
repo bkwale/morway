@@ -3,6 +3,12 @@ import * as xpath from 'xpath'
 
 export type DocumentType = 'INVOICE' | 'CREDIT_NOTE'
 
+export interface VatBreakdownEntry {
+  rate: number
+  taxableAmount: number
+  vatAmount: number
+}
+
 export interface ParsedInvoice {
   invoiceNumber: string
   invoiceDate: Date
@@ -19,6 +25,10 @@ export interface ParsedInvoice {
     vatNumber: string | null
     peppolId: string | null
   }
+  reverseCharge: boolean
+  vatExemptionReason: string | null
+  linkedInvoiceNumber: string | null
+  vatBreakdown: VatBreakdownEntry[]
   lineItems: ParsedLineItem[]
   netAmount: number
   vatAmount: number
@@ -32,6 +42,7 @@ export interface ParsedLineItem {
   unitPrice: number
   vatRate: number
   lineTotal: number
+  vatExemptionReason?: string | null
   suggestedAccountCode?: string | null
   accountCodeConfidence?: number | null
 }
@@ -98,6 +109,10 @@ export function parseUBLInvoice(xml: string): ParsedInvoice {
       documentType: 'INVOICE' as const,
       supplier: { name: '', vatNumber: null, address: null },
       buyer: { name: '', vatNumber: null, peppolId: null },
+      reverseCharge: false,
+      vatExemptionReason: null,
+      linkedInvoiceNumber: null,
+      vatBreakdown: [],
       lineItems: [],
       netAmount: 0,
       vatAmount: 0,
@@ -163,6 +178,41 @@ export function parseUBLInvoice(xml: string): ParsedInvoice {
   const typeCode = select(doc, '//cbc:InvoiceTypeCode')
   const isCreditNote = rootTag === 'creditnote' || typeCode === '381'
 
+  // Reverse charge detection from UBL TaxCategory
+  const taxExemptionCode = select(doc, '//cac:TaxTotal/cac:TaxSubtotal/cac:TaxCategory/cbc:TaxExemptionReasonCode')
+  const taxCategoryId = select(doc, '//cac:TaxTotal/cac:TaxSubtotal/cac:TaxCategory/cbc:ID')
+  const isReverseCharge = taxCategoryId === 'AE' || taxExemptionCode === 'vatex-eu-ae'
+
+  // VAT exemption reason from UBL
+  let vatExemptionReason: string | null = null
+  if (isReverseCharge) vatExemptionReason = 'REVERSE_CHARGE'
+  else if (taxCategoryId === 'K') vatExemptionReason = 'INTRA_COMMUNITY'
+  else if (taxCategoryId === 'G') vatExemptionReason = 'EXPORT'
+  else if (taxCategoryId === 'E') vatExemptionReason = 'OTHER'
+
+  // VAT breakdown from UBL TaxSubtotal elements
+  const taxSubtotalNodes = selectAll(doc, '//cac:TaxTotal/cac:TaxSubtotal')
+  const vatBreakdown = taxSubtotalNodes.map((node) => {
+    const subDoc = node as unknown as Document
+    const subSelect = (expr: string) => {
+      try {
+        const selectFn = xpath.useNamespaces({ cbc: NS.cbc, cac: NS.cac })
+        const result = selectFn(expr, subDoc, true) as xpath.SelectedValue
+        return (result as any)?.textContent?.trim() ?? ''
+      } catch {
+        return ''
+      }
+    }
+    return {
+      rate: parseAmount(subSelect('cac:TaxCategory/cbc:Percent')),
+      taxableAmount: parseAmount(subSelect('cbc:TaxableAmount')),
+      vatAmount: parseAmount(subSelect('cbc:TaxAmount')),
+    }
+  })
+
+  // Credit note reference (BillingReference)
+  const linkedInvoiceNumber = select(doc, '//cac:BillingReference/cac:InvoiceDocumentReference/cbc:ID') || null
+
   return {
     invoiceNumber,
     invoiceDate,
@@ -179,6 +229,10 @@ export function parseUBLInvoice(xml: string): ParsedInvoice {
       vatNumber: buyerVat || null,
       peppolId: buyerPeppolId || null,
     },
+    reverseCharge: isReverseCharge,
+    vatExemptionReason,
+    linkedInvoiceNumber,
+    vatBreakdown,
     lineItems,
     netAmount,
     vatAmount,

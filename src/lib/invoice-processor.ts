@@ -28,6 +28,31 @@ function extractErrorMessage(err: unknown): string {
 }
 
 /**
+ * Detect reverse charge from parsed invoice data.
+ * Cross-border B2B within the EU: both parties have VAT numbers,
+ * different country prefixes, and VAT amount is 0 or negligible.
+ */
+function detectReverseCharge(parsed: ReturnType<typeof parseUBLInvoice>): boolean {
+  const supplierVat = parsed.supplier.vatNumber
+  const buyerVat = parsed.buyer.vatNumber
+
+  // Need both VAT numbers to determine cross-border
+  if (!supplierVat || !buyerVat) return false
+
+  // Different country prefixes = cross-border
+  const supplierCountry = supplierVat.slice(0, 2).toUpperCase()
+  const buyerCountry = buyerVat.slice(0, 2).toUpperCase()
+  if (supplierCountry === buyerCountry) return false
+
+  // VAT amount is 0 or very small relative to net → likely reverse charge
+  if (parsed.netAmount > 0 && parsed.vatAmount / parsed.netAmount < 0.01) {
+    return true
+  }
+
+  return false
+}
+
+/**
  * Main invoice processing pipeline.
  * Called after a Peppol invoice is received.
  *
@@ -138,10 +163,59 @@ export async function processInvoice(invoiceId: string): Promise<void> {
       })
     }
 
-    // Update invoice with supplier
+    // Update supplier with address/country from parsed data if missing
+    if (parsed.supplier.address && !supplier.address) {
+      await db.supplier.update({
+        where: { id: supplier.id },
+        data: {
+          address: parsed.supplier.address,
+          // Infer country from VAT number prefix (DE=Germany, FR=France, NL=Netherlands, etc.)
+          country: parsed.supplier.vatNumber ? parsed.supplier.vatNumber.slice(0, 2).toUpperCase() : null,
+        },
+      })
+    }
+
+    // Detect reverse charge: cross-border B2B where VAT is 0 but both parties have VAT numbers
+    const reverseCharge = parsed.reverseCharge || detectReverseCharge(parsed)
+
+    // Link credit notes to original invoices
+    let linkedInvoiceId: string | null = null
+    if (parsed.documentType === 'CREDIT_NOTE' && parsed.linkedInvoiceNumber) {
+      const linkedInvoice = await db.invoice.findFirst({
+        where: {
+          clientId: invoice.clientId,
+          invoiceNumber: parsed.linkedInvoiceNumber,
+        },
+        select: { id: true },
+      })
+      if (linkedInvoice) {
+        linkedInvoiceId = linkedInvoice.id
+        await createAuditLog(invoiceId, AUDIT_ACTION.CREDIT_NOTE_LINKED, {
+          linkedInvoiceId: linkedInvoice.id,
+          linkedInvoiceNumber: parsed.linkedInvoiceNumber,
+        })
+      }
+    }
+
+    if (reverseCharge) {
+      await createAuditLog(invoiceId, AUDIT_ACTION.REVERSE_CHARGE_DETECTED, {
+        supplierVat: parsed.supplier.vatNumber,
+        buyerVat: parsed.buyer.vatNumber,
+        vatExemptionReason: parsed.vatExemptionReason ?? 'REVERSE_CHARGE',
+      })
+    }
+
+    // Update invoice with supplier + VAT data + credit note link
     await db.invoice.update({
       where: { id: invoiceId },
-      data: { supplierId: supplier.id },
+      data: {
+        supplierId: supplier.id,
+        supplierVatNumber: parsed.supplier.vatNumber,
+        buyerVatNumber: parsed.buyer.vatNumber,
+        reverseCharge,
+        vatExemptionReason: parsed.vatExemptionReason,
+        linkedInvoiceId,
+      },
     })
 
     // ── STEP 3: Apply rules engine ────────────────────────────────────────
@@ -158,7 +232,7 @@ export async function processInvoice(invoiceId: string): Promise<void> {
       unmatched: rulesResult.unmatched,
     })
 
-    // Save line items with applied account codes
+    // Save line items with applied account codes + VAT exemption info
     await db.lineItem.createMany({
       data: rulesResult.lineItems.map((item) => ({
         invoiceId,
@@ -168,6 +242,8 @@ export async function processInvoice(invoiceId: string): Promise<void> {
         vatRate: item.vatRate,
         lineTotal: item.lineTotal,
         accountCode: item.accountCode,
+        vatExemptionReason: (item as any).vatExemptionReason ?? null,
+        ruleId: (item as any).ruleId ?? null,
       })),
     })
 

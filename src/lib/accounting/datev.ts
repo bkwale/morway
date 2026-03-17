@@ -253,17 +253,28 @@ export async function generateDatevExport(options: DatevExportOptions): Promise<
       row[7] = invoice.supplier?.vatNumber
         ? `"${invoice.supplier.vatNumber}"`
         : '70000'                                                // Gegenkonto (creditor/supplier)
+
+      // BU-Schlüssel: tax key for reverse charge / intra-community
+      if (invoice.reverseCharge) {
+        row[8] = '94'                                            // Reverse charge (§13b UStG)
+      }
+
       row[9] = formatBelegdatum(invoice.invoiceDate)             // Belegdatum
       row[10] = `"${(invoice.invoiceNumber ?? '').slice(0, 36)}"` // Belegfeld 1 (max 36 chars)
       row[13] = `"${(line.description ?? '').slice(0, 60)}"`     // Buchungstext (max 60 chars)
 
-      // EU VAT info if supplier has VAT number
-      if (invoice.supplier?.vatNumber) {
-        const vatNo = invoice.supplier.vatNumber
+      // EU VAT info — prefer invoice-level VAT number (always available), fall back to supplier
+      const vatNo = invoice.supplierVatNumber ?? invoice.supplier?.vatNumber
+      if (vatNo) {
         const countryCode = vatNo.slice(0, 2).toUpperCase()
         if (countryCode !== 'DE') {
           row[39] = `"${vatNo}"`                                 // EU-Land u. USt-IdNr.
         }
+      }
+
+      // Due date (Fälligkeit) — DATEV field index 87
+      if (invoice.dueDate) {
+        row[87] = formatBelegdatum(invoice.dueDate)
       }
 
       dataRows.push(row.join(';'))

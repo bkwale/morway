@@ -48,6 +48,9 @@ Return ONLY a JSON array (no markdown, no explanation, no code fences):
       "name": "string or null",
       "vatNumber": "string or null"
     },
+    "reverseCharge": boolean,
+    "vatExemptionReason": "REVERSE_CHARGE" | "INTRA_COMMUNITY" | "EXPORT" | "EXEMPT_MEDICAL" | "EXEMPT_EDUCATION" | "EXEMPT_FINANCIAL" | "SMALL_BUSINESS" | "OTHER" | null,
+    "linkedInvoiceNumber": "string or null — for credit notes, the original invoice number being credited",
     "lineItems": [
       {
         "description": "string (translate to English if needed)",
@@ -55,9 +58,13 @@ Return ONLY a JSON array (no markdown, no explanation, no code fences):
         "unitPrice": number,
         "vatRate": number,
         "lineTotal": number,
+        "vatExemptionReason": "same as above, or null if VAT applies normally",
         "suggestedAccountCode": "string — standard chart-of-accounts code (see below)",
         "accountCodeConfidence": number between 0.0 and 1.0
       }
+    ],
+    "vatBreakdown": [
+      { "rate": number, "taxableAmount": number, "vatAmount": number }
     ],
     "netAmount": number,
     "vatAmount": number,
@@ -77,6 +84,10 @@ Rules:
 - If there is only ONE invoice, still return it inside an array: [{ ... }]
 - Extract EVERY invoice and credit note found — do not skip any
 - documentType: "credit_note" for Gutschrift, Avoir, Creditnota, credit memo, or negative totals
+- reverseCharge: true if the invoice indicates reverse charge / Steuerschuldnerschaft / autoliquidation / verlegging. Common signals: 0% VAT on B2B cross-border, explicit "reverse charge" text, "TVA non applicable art. 259-1", "Steuerschuldnerschaft des Leistungsempfängers", "BTW verlegd"
+- vatExemptionReason: classify why VAT is 0% or exempt — REVERSE_CHARGE (cross-border B2B), INTRA_COMMUNITY (EU goods), EXPORT (outside EU), EXEMPT_MEDICAL/EDUCATION/FINANCIAL (domestic exemptions), SMALL_BUSINESS (Kleinunternehmer), OTHER, or null if VAT applies normally
+- linkedInvoiceNumber: for credit notes, extract the original invoice number being credited (often labelled "Bezug auf Rechnung", "Réf. facture", "Betreft factuur")
+- vatBreakdown: group all line items by VAT rate and provide taxableAmount + vatAmount per rate. This is critical for VAT returns
 - suggestedAccountCode: suggest a standard accounting code for each line item based on its description:
   - For French PCG (Plan Comptable Général): 601x (raw materials), 602x (consumables), 606x (services), 607x (goods for resale), 611x (subcontracting), 613x (rent), 615x (maintenance), 616x (insurance), 622x (fees/commissions), 625x (travel), 626x (postal/telecom), 627x (banking), 641x (staff costs), 681x (depreciation)
   - For German SKR03: 3xxx (materials), 4xxx (revenue), 6xxx (operating expenses), 7xxx (depreciation)
@@ -542,11 +553,23 @@ function mapToParsedInvoice(extracted: Record<string, unknown>): ParsedInvoice {
     unitPrice: safeNumber(item.unitPrice, 0),
     vatRate: safeNumber(item.vatRate, 0),
     lineTotal: safeNumber(item.lineTotal, 0),
+    vatExemptionReason: item.vatExemptionReason ? String(item.vatExemptionReason) : null,
     suggestedAccountCode: item.suggestedAccountCode ? String(item.suggestedAccountCode) : null,
     accountCodeConfidence: item.accountCodeConfidence ? safeNumber(item.accountCodeConfidence, 0) : null,
   }))
 
   if (lineItems.length === 0) errors.push('No line items extracted')
+
+  // VAT breakdown
+  const rawVatBreakdown = (extracted.vatBreakdown as Array<Record<string, unknown>>) ?? []
+  const vatBreakdown = rawVatBreakdown.map((entry) => ({
+    rate: safeNumber(entry.rate, 0),
+    taxableAmount: safeNumber(entry.taxableAmount, 0),
+    vatAmount: safeNumber(entry.vatAmount, 0),
+  }))
+
+  // If AI didn't provide vatBreakdown, compute from line items
+  const finalVatBreakdown = vatBreakdown.length > 0 ? vatBreakdown : computeVatBreakdown(lineItems)
 
   return {
     invoiceNumber,
@@ -564,12 +587,35 @@ function mapToParsedInvoice(extracted: Record<string, unknown>): ParsedInvoice {
       vatNumber: buyer?.vatNumber ? String(buyer.vatNumber) : null,
       peppolId: null,
     },
+    reverseCharge: Boolean(extracted.reverseCharge),
+    vatExemptionReason: extracted.vatExemptionReason ? String(extracted.vatExemptionReason) : null,
+    linkedInvoiceNumber: extracted.linkedInvoiceNumber ? String(extracted.linkedInvoiceNumber) : null,
+    vatBreakdown: finalVatBreakdown,
     lineItems,
     netAmount: safeNumber(extracted.netAmount, 0),
     vatAmount: safeNumber(extracted.vatAmount, 0),
     grossAmount: safeNumber(extracted.grossAmount, 0),
     errors,
   }
+}
+
+/**
+ * Compute VAT breakdown from line items when AI doesn't provide one.
+ * Groups by VAT rate and sums taxable amounts + VAT.
+ */
+function computeVatBreakdown(lineItems: ParsedLineItem[]): Array<{ rate: number; taxableAmount: number; vatAmount: number }> {
+  const grouped = new Map<number, { taxableAmount: number; vatAmount: number }>()
+  for (const item of lineItems) {
+    const existing = grouped.get(item.vatRate) ?? { taxableAmount: 0, vatAmount: 0 }
+    existing.taxableAmount += item.lineTotal
+    existing.vatAmount += Math.round(item.lineTotal * (item.vatRate / 100) * 100) / 100
+    grouped.set(item.vatRate, existing)
+  }
+  return Array.from(grouped.entries()).map(([rate, { taxableAmount, vatAmount }]) => ({
+    rate,
+    taxableAmount: Math.round(taxableAmount * 100) / 100,
+    vatAmount: Math.round(vatAmount * 100) / 100,
+  }))
 }
 
 // ─── HELPERS ──────────────────────────────────────────────────────────────────
@@ -588,6 +634,10 @@ function emptyInvoice(errors: string[]): ParsedInvoice {
     documentType: 'INVOICE',
     supplier: { name: '', vatNumber: null, address: null },
     buyer: { name: '', vatNumber: null, peppolId: null },
+    reverseCharge: false,
+    vatExemptionReason: null,
+    linkedInvoiceNumber: null,
+    vatBreakdown: [],
     lineItems: [],
     netAmount: 0,
     vatAmount: 0,

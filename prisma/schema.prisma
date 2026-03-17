@@ -107,59 +107,79 @@ model Client {
 }
 
 model Supplier {
-  id             String    @id @default(uuid())
-  clientId       String
-  name           String
-  vatNumber      String?
-  xeroContactId  String?
-  defaultAccount String?
-  client         Client    @relation(fields: [clientId], references: [id], onDelete: Cascade)
-  invoices       Invoice[]
+  id              String    @id @default(uuid())
+  clientId        String
+  name            String
+  vatNumber       String?
+  address         String?
+  country         String?
+  xeroContactId   String?
+  defaultAccount  String?
+  defaultVatRate  Float?
+  paymentTermDays Int?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  client          Client    @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  invoices        Invoice[]
 
   @@unique([clientId, vatNumber])
   @@map("suppliers")
 }
 
 model Invoice {
-  id              String     @id @default(uuid())
-  clientId        String
-  supplierId      String?
-  invoiceNumber   String
-  invoiceDate     DateTime
-  dueDate         DateTime?
-  currency        String     @default("EUR")
-  netAmount       Float
-  vatAmount       Float
-  grossAmount     Float
-  documentType    String     @default("INVOICE")
-  rawXml          String
-  status          String     @default("PENDING")
-  confidenceScore Float      @default(0)
-  xeroInvoiceId   String?
-  externalRef     String?
-  failureReason   String?
-  receivedAt      DateTime   @default(now())
-  processedAt     DateTime?
-  postedAt        DateTime?
-  client          Client     @relation(fields: [clientId], references: [id])
-  supplier        Supplier?  @relation(fields: [supplierId], references: [id])
-  lineItems       LineItem[]
-  auditLogs       AuditLog[]
-  exception       Exception?
+  id                  String     @id @default(uuid())
+  clientId            String
+  supplierId          String?
+  invoiceNumber       String
+  invoiceDate         DateTime
+  dueDate             DateTime?
+  currency            String     @default("EUR")
+  netAmount           Float
+  vatAmount           Float
+  grossAmount         Float
+  documentType        String     @default("INVOICE")
+  rawXml              String
+  status              String     @default("PENDING")
+  confidenceScore     Float      @default(0)
+  // VAT fields
+  supplierVatNumber   String?
+  buyerVatNumber      String?
+  reverseCharge       Boolean    @default(false)
+  vatExemptionReason  String?
+  // Payment tracking
+  paymentStatus       String     @default("UNPAID")
+  paidAmount          Float      @default(0)
+  paidAt              DateTime?
+  // Credit note linking
+  linkedInvoiceId     String?
+  // External system refs
+  xeroInvoiceId       String?
+  externalRef         String?
+  failureReason       String?
+  receivedAt          DateTime   @default(now())
+  processedAt         DateTime?
+  postedAt            DateTime?
+  client              Client     @relation(fields: [clientId], references: [id])
+  supplier            Supplier?  @relation(fields: [supplierId], references: [id])
+  lineItems           LineItem[]
+  auditLogs           AuditLog[]
+  exception           Exception?
 
   @@map("invoices")
 }
 
 model LineItem {
-  id          String  @id @default(uuid())
-  invoiceId   String
-  description String
-  quantity    Float
-  unitPrice   Float
-  vatRate     Float
-  lineTotal   Float
-  accountCode String?
-  invoice     Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  id                 String  @id @default(uuid())
+  invoiceId          String
+  description        String
+  quantity           Float
+  unitPrice          Float
+  vatRate            Float
+  lineTotal          Float
+  accountCode        String?
+  vatExemptionReason String?
+  ruleId             String?
+  invoice            Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
 
   @@map("line_items")
 }

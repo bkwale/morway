@@ -241,15 +241,17 @@ export async function generateLexwareExport(options: LexwareExportOptions): Prom
       ? (supplierAccountMap.get(invoice.supplierId) ?? creditorStart)
       : creditorStart
 
-    // Check if supplier is EU (non-DE)
-    const isEU = invoice.supplier?.vatNumber
-      ? !invoice.supplier.vatNumber.startsWith('DE')
-      : false
+    // Check if supplier is EU (non-DE) — use invoice-level VAT first, fall back to supplier
+    const supplierVat = invoice.supplierVatNumber ?? invoice.supplier?.vatNumber
+    const isEU = supplierVat ? !supplierVat.startsWith('DE') : false
+    const isReverseCharge = invoice.reverseCharge
 
     for (const line of invoice.lineItems) {
       if (!line.accountCode) continue
 
-      const steuerschluessel = getSteuerschluessel(line.vatRate, isEU)
+      const steuerschluessel = isReverseCharge
+        ? '94'  // §13b UStG reverse charge
+        : getSteuerschluessel(line.vatRate, isEU)
 
       const row = [
         formatDate(invoice.invoiceDate),              // Belegdatum (DD.MM.YYYY)
