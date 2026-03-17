@@ -32,7 +32,7 @@ function extractErrorMessage(err: unknown): string {
  * Cross-border B2B within the EU: both parties have VAT numbers,
  * different country prefixes, and VAT amount is 0 or negligible.
  */
-function detectReverseCharge(parsed: ReturnType<typeof parseUBLInvoice>): boolean {
+export function detectReverseCharge(parsed: ReturnType<typeof parseUBLInvoice>): boolean {
   const supplierVat = parsed.supplier.vatNumber
   const buyerVat = parsed.buyer.vatNumber
 

@@ -603,7 +603,7 @@ function mapToParsedInvoice(extracted: Record<string, unknown>): ParsedInvoice {
  * Compute VAT breakdown from line items when AI doesn't provide one.
  * Groups by VAT rate and sums taxable amounts + VAT.
  */
-function computeVatBreakdown(lineItems: ParsedLineItem[]): Array<{ rate: number; taxableAmount: number; vatAmount: number }> {
+export function computeVatBreakdown(lineItems: ParsedLineItem[]): Array<{ rate: number; taxableAmount: number; vatAmount: number }> {
   const grouped = new Map<number, { taxableAmount: number; vatAmount: number }>()
   for (const item of lineItems) {
     const existing = grouped.get(item.vatRate) ?? { taxableAmount: 0, vatAmount: 0 }

@@ -87,8 +87,8 @@ function AccountCodeAutocomplete({
           setSuggestions(data)
           setOpen(data.length > 0)
         }
-      } catch {
-        // silent
+      } catch (err) {
+        console.warn('[account-codes] Autocomplete fetch failed:', err instanceof Error ? err.message : err)
       }
     }, 250)
     setDebounceTimer(timer)
