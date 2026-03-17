@@ -12,11 +12,11 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
-import { getSession } from '@/lib/get-session'
+import { getSessionOrNull } from '@/lib/get-session'
 import { getCodeList } from '@/lib/chart-of-accounts'
 
 export async function GET(request: NextRequest) {
-  const session = await getSession()
+  const session = await getSessionOrNull()
   if (!session?.user?.firmId) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }

@@ -14,14 +14,14 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
-import { getSession } from '@/lib/get-session'
+import { getSessionOrNull } from '@/lib/get-session'
 import { PAYMENT_STATUS, AUDIT_ACTION } from '@/lib/constants'
 
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const session = await getSession()
+  const session = await getSessionOrNull()
   if (!session?.user?.firmId) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
