@@ -102,6 +102,10 @@ export async function processInvoice(invoiceId: string): Promise<void> {
           vatAmount: maybeJson.vatAmount ?? invoice.vatAmount,
           grossAmount: maybeJson.grossAmount ?? invoice.grossAmount,
           errors: maybeJson.errors ?? [],
+          reverseCharge: maybeJson.reverseCharge ?? false,
+          vatExemptionReason: maybeJson.vatExemptionReason ?? null,
+          linkedInvoiceNumber: maybeJson.linkedInvoiceNumber ?? null,
+          vatBreakdown: maybeJson.vatBreakdown ?? [],
         }
       } else {
         parsed = parseUBLInvoice(invoice.rawXml)
